@@ -83,8 +83,12 @@ El verificador (`src/verifier.ts`) se ejecutó con éxito en hardware real (dos 
 | Emisión ATEX — Issuer independiente, credencial AnonCreds | ✅ Completado |
 | Emisión Soldador — Issuer independiente, credencial AnonCreds | ✅ Completado |
 | Verificación — ProofRequest combinada ZKP (3 credenciales) | ✅ Completado |
-| Formulario web de creación de OT | 🔄 Pendiente |
+| Formulario web de creación de OT (Portátil A) | ✅ Completado |
+| Panel web de control de acceso — Verifier (Portátil B) | ✅ Completado |
+| Validación de fecha de OT en el Verifier | 🔄 Pendiente de ajuste fino |
 | Memoria del TFG | 🔄 En curso |
+
+**Nota de alcance:** El sistema es un prototipo funcional de demostración para el TFG. Toda la funcionalidad核心 SSI está implementada y validada en hardware real (dos portátiles, dos móviles, BCovrin T
 
 ## 7. Archivos del Proyecto
 * `src/config/AgentFactory.ts` — Factoría de agentes Credo con soporte de transporte HTTP y módulos DIDComm. Tipado estricto `IndustrialAgent` sin casteos.
@@ -94,6 +98,9 @@ El verificador (`src/verifier.ts`) se ejecutó con éxito en hardware real (dos 
 * `src/index.ts` — Placeholder para el servidor principal (futuro).
 * `.seed-backup` — Seed de recuperación del DID (NO versionar).
 * `.gitignore` — Exclusiones de Git.
+* `public/index.html` — Formulario web de creación de OT: directorio de operarios (operarios.json), registro de nuevas conexiones DIDComm y emisión de credenciales sin escaneo adicional.
+* `public-verifier/index.html` — Panel de control de acceso a pantalla completa: muestra QR OOB, pantalla de verificación y resultado verde/rojo con desglose de credenciales presentadas.
+* `operarios.json` — Directorio persistente de operarios registrados (connectionId ↔ nombre). NO versionar.
 
 ## 8. Notas Operativas
 * **Ejecución de setup:** `npm start` (ejecuta `tsx src/setup.ts`).
