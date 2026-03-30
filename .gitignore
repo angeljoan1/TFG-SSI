@@ -1,0 +1,22 @@
+# Dependencias
+node_modules/
+
+# Wallets y datos sensibles de Askar
+.afj/
+.indy_client/
+
+# Seed de recuperación (NUNCA subir)
+.seed-backup
+
+# Archivos de sistema
+.DS_Store
+*.log
+
+# TypeScript compilado
+dist/
+*.js
+*.js.map
+*.d.ts
+
+# Variables de entorno
+.env
