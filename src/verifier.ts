@@ -112,6 +112,7 @@ const main = async () => {
 
     return oob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
   }
+
   // ── 3. Listener de pruebas (el núcleo del verificador) ────────────────────
   // Este bloque es el "portero": reacciona a cada cambio de estado
   // en el protocolo Present Proof 2.0.
@@ -211,10 +212,6 @@ if (isValid) {
   console.log('--> Sistema activo. Ctrl+C para detener.')
   console.log('================================================================\n')
 
-  // Mantener el proceso vivo indefinidamente
-  console.log('================================================================')
-  console.log('--> Sistema activo. Ctrl+C para detener.')
-  console.log('================================================================\n')
 
   // Capturar señal de apagado para un shutdown limpio
   process.on('SIGINT', async () => {

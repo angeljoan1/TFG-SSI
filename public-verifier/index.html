@@ -321,8 +321,14 @@
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  loadQR()
-  setInterval(poll, 1500)
+async function refreshQR() {
+  await loadQR()
+}
+refreshQR()
+setInterval(poll, 1500)
+setInterval(() => {
+  if (currentScreen === 'qr') refreshQR()
+}, 30000)
 </script>
 </body>
 </html>
