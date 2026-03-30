@@ -10,13 +10,9 @@
 
 import { AgentFactory, IndustrialAgent } from './config/AgentFactory'
 import {
-  ConnectionStateChangedEvent,
-  ConnectionEventTypes,
-  DidExchangeState,
   ProofStateChangedEvent,
   ProofEventTypes,
   ProofState,
-  HandshakeProtocol,
 } from '@credo-ts/core'
 import express, { Request, Response } from 'express'
 import path from 'path'
@@ -55,7 +51,7 @@ interface VerificationEvent {
 }
 let lastEvent: VerificationEvent | null = null
 
-let invitationUrl = ''
+let generateProofQR: () => Promise<string>
 // ─── Lógica principal ─────────────────────────────────────────────────────────
 const main = async () => {
   console.log('================================================================')
@@ -88,6 +84,34 @@ const main = async () => {
   console.log(`[OK] Agente inicializado. Escuchando en puerto ${PORT}.`)
   console.log(`[OK] Endpoint público: ${ngrokEndpoint}\n`)
 
+  generateProofQR = async (): Promise<string> => {
+    const { message } = await verifier.proofs.createRequest({
+      protocolVersion: 'v2',
+      proofFormats: {
+        anoncreds: {
+          name: 'control-acceso-planta',
+          version: '1.0',
+          requested_attributes: {
+            grupo_equipo:     { name: 'equipo',      restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+            grupo_tarea:      { name: 'tarea',       restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+            grupo_zona:       { name: 'zona',        restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+            grupo_nivel_atex: { name: 'nivel_atex',  restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+            grupo_proceso:    { name: 'proceso',     restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+            grupo_norma:      { name: 'norma',       restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+          },
+          requested_predicates: {},
+        },
+      },
+    })
+
+    const oob = await verifier.oob.createInvitation({
+      label: 'Control de Acceso — Planta Industrial',
+      multiUseInvitation: false,
+      messages: [message],
+    })
+
+    return oob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
+  }
   // ── 3. Listener de pruebas (el núcleo del verificador) ────────────────────
   // Este bloque es el "portero": reacciona a cada cambio de estado
   // en el protocolo Present Proof 2.0.
@@ -163,102 +187,29 @@ if (isValid) {
   // ── 4. Generar invitación OOB y esperar conexión ──────────────────────────
   // La invitación es multi-uso: múltiples operarios pueden conectarse
   // con el mismo QR sin regenerarlo.
-  // ── Servidor Express ──────────────────────────────────────────────────────
-const app = express()
-app.use(express.static(path.join(__dirname, '..', 'public-verifier')))
-app.get('/api/status', (_req: Request, res: Response) => {
-  res.json(lastEvent)
-})
-app.get('/api/qr', (_req: Request, res: Response) => {
-  res.json({ url: invitationUrl })
-})
-const WEB_PORT = PORT + 100 // 3102
-app.listen(WEB_PORT, () => {
-  console.log(`[WEB] Panel de acceso en http://localhost:${WEB_PORT}\n`)
-})
-
-console.log('--> [3/4] Generando invitación OOB para operarios...')
-
-  const oobInvitation = await verifier.oob.createInvitation({
-    label: 'Control de Acceso — Planta Industrial',
-    multiUseInvitation: true,
-    handshakeProtocols: [HandshakeProtocol.DidExchange],
+ // ── Servidor Express ─────────────────────────────────────────────────────
+  const app = express()
+  app.use(express.static(path.join(__dirname, '..', 'public-verifier')))
+  app.get('/api/status', (_req: Request, res: Response) => {
+    res.json(lastEvent)
   })
-
-  invitationUrl = oobInvitation.outOfBandInvitation.toUrl({
-    domain: ngrokEndpoint,
-  })
-
-  console.log('[OK] Invitación generada. Muestra este QR al operario:\n')
-  await printQR(invitationUrl)
-
-  // ── 5. Listener de conexiones: enviar Proof Request al conectarse ─────────
-  // Cuando un operario escanea el QR y establece el canal DIDComm,
-  // el verificador le envía automáticamente la solicitud de prueba.
-  console.log('--> [4/4] Esperando conexiones de operarios...\n')
-
-  verifier.events.on<ConnectionStateChangedEvent>(
-    ConnectionEventTypes.ConnectionStateChanged,
-    async ({ payload }) => {
-      const connection = payload.connectionRecord
-
-      // Solo actuar cuando la conexión está completamente establecida
-      if (connection.state !== DidExchangeState.Completed) return
-
-      console.log(`\n[CONN] ✓ Operario conectado. ID de conexión: ${connection.id}`)
-      console.log('[CONN] Enviando solicitud de prueba ZKP...\n')
-
-      // ── Proof Request con Revelación Selectiva ───────────────────────────
-      // Se solicitan ÚNICAMENTE 'equipo' y 'tarea'.
-      // AnonCreds permite al holder demostrar que posee estos atributos
-      // firmados por el emisor registrado en BCovrin, sin revelar el resto.
-      await verifier.proofs.requestProof({
-        protocolVersion: 'v2',
-        connectionId: connection.id,
-        proofFormats: {
-          anoncreds: {
-            name: 'control-acceso-planta',
-            version: '1.0',
-            requested_attributes: {
-              // ── Orden de Trabajo (Oficina Técnica) ──
-              grupo_equipo: {
-                name: 'equipo',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_OT }],
-              },
-              grupo_tarea: {
-                name: 'tarea',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_OT }],
-              },
-              // ── Certificado ATEX (Directiva Zonas Explosivas) ──
-              grupo_zona: {
-                name: 'zona',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }],
-              },
-              grupo_nivel_atex: {
-                name: 'nivel_atex',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }],
-              },
-              // ── Homologación Soldador (Escuela de Soldadores) ──
-              grupo_proceso: {
-                name: 'proceso',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }],
-              },
-              grupo_norma: {
-                name: 'norma',
-                restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }],
-              },
-            },
-            // Sin predicados en esta versión.
-            // Trabajo futuro: añadir predicado sobre 'fecha' para verificar
-            // que la orden no ha caducado sin revelar la fecha exacta.
-            requested_predicates: {},
-          },
-        },
-      })
-
-      console.log('[PROOF] Solicitud enviada. Esperando ZKP del operario...')
+  app.get('/api/qr', async (_req: Request, res: Response) => {
+    try {
+      const url = await generateProofQR()
+      res.json({ url })
+    } catch (e) {
+      res.status(500).json({ error: 'No se pudo generar el QR' })
     }
-  )
+  })
+  const WEB_PORT = PORT + 100
+  app.listen(WEB_PORT, () => {
+    console.log(`[WEB] Panel de acceso en http://localhost:${WEB_PORT}\n`)
+  })
+
+  console.log('--> [3/4] Listo. Generando QR bajo demanda...\n')
+  console.log('================================================================')
+  console.log('--> Sistema activo. Ctrl+C para detener.')
+  console.log('================================================================\n')
 
   // Mantener el proceso vivo indefinidamente
   console.log('================================================================')
