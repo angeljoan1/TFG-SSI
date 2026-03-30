@@ -22,10 +22,12 @@ import {
 // ─── Constantes de infraestructura ───────────────────────────────────────────
 // Estos IDs son los registrados en BCovrin por setup.ts.
 // Si regeneras la infraestructura, actualiza estos valores.
-const CRED_DEF_ID   = 'did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM/anoncreds/v0/CLAIM_DEF/3149116/default'
-
+// ─── Constantes de infraestructura ───────────────────────────────────────────
+const CRED_DEF_ID_OT = 'did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM/anoncreds/v0/CLAIM_DEF/3149116/default'
+const CRED_DEF_ID_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B/anoncreds/v0/CLAIM_DEF/3152041/default'
+const CRED_DEF_ID_SOLDADOR = 'did:indy:bcovrin:test:BE1hcUv3FSh31ihbfKTo6i/anoncreds/v0/CLAIM_DEF/3152060/default'
 // Puerto local del verificador (distinto al del emisor que usa 3001)
-const PORT          = 3002
+const PORT = 3002
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -119,7 +121,10 @@ const main = async () => {
               // raw es el valor en texto plano; encoded es el valor criptográfico
               console.log(`        · ${attrName}: ${(attrData as any).raw}`)
             }
-            console.log('\n[PRIVACIDAD] Los atributos NO revelados (id_orden, fecha)')
+            console.log('\n[PRIVACIDAD] Atributos NO revelados (nunca salieron del wallet):')
+            console.log('             OT → id_orden, fecha')
+            console.log('             ATEX → id_cert, trabajador, fecha_expiracion')
+            console.log('             SOLDADOR → id_cert, trabajador, fecha_expiracion  ✓')
             console.log('             nunca salieron del wallet del operario. ✓')
           } catch (e) {
             console.log('[WARN] No se pudieron extraer los atributos revelados:', e)
@@ -193,26 +198,32 @@ const main = async () => {
             name: 'control-acceso-planta',
             version: '1.0',
             requested_attributes: {
-              // Grupo 1: equipo al que pertenece la orden
+              // ── Orden de Trabajo (Oficina Técnica) ──
               grupo_equipo: {
                 name: 'equipo',
-                restrictions: [
-                  {
-                    // Restringir a credenciales emitidas por NUESTRA CredDef.
-                    // Esto garantiza que la credencial viene de nuestro emisor,
-                    // no de cualquier otro issuer que use el mismo schema.
-                    cred_def_id: CRED_DEF_ID,
-                  },
-                ],
+                restrictions: [{ cred_def_id: CRED_DEF_ID_OT }],
               },
-              // Grupo 2: tarea asignada en la orden
               grupo_tarea: {
                 name: 'tarea',
-                restrictions: [
-                  {
-                    cred_def_id: CRED_DEF_ID,
-                  },
-                ],
+                restrictions: [{ cred_def_id: CRED_DEF_ID_OT }],
+              },
+              // ── Certificado ATEX (Directiva Zonas Explosivas) ──
+              grupo_zona: {
+                name: 'zona',
+                restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }],
+              },
+              grupo_nivel_atex: {
+                name: 'nivel_atex',
+                restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }],
+              },
+              // ── Homologación Soldador (Escuela de Soldadores) ──
+              grupo_proceso: {
+                name: 'proceso',
+                restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }],
+              },
+              grupo_norma: {
+                name: 'norma',
+                restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }],
               },
             },
             // Sin predicados en esta versión.

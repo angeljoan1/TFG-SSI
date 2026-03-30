@@ -65,7 +65,7 @@ export class AgentFactory {
     transport?: AgentTransportConfig
   ): Promise<IndustrialAgent> {
 
-    const genesisResponse = await fetch('http://test.bcovrin.vonx.io/genesis')
+    const genesisResponse = await fetch('https://test.bcovrin.vonx.io/genesis')
     const genesisTransactions = await genesisResponse.text()
 
     const config: InitConfig = {

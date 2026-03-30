@@ -44,7 +44,7 @@ const main = async () => {
             console.log(`--> Nuevo DNI generado: ${publicDid}`)
             console.log(`    ... Negociando permisos de Endorser con el Faucet...`)
 
-            const faucetResponse = await fetch('http://test.bcovrin.vonx.io/register', {
+            const faucetResponse = await fetch('https://test.bcovrin.vonx.io/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role: 'ENDORSER', alias: 'Servidor-Autonomo-V13', did: rawDid, seed: randomSeed })
