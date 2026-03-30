@@ -481,9 +481,7 @@
             const grid = document.getElementById('creds-grid')
             const fill = document.getElementById('countdown-fill')
 
-            function renderResult(event) {
-  console.log('missing:', JSON.stringify(event.missing))
-  console.log('valid:', event.valid)
+            
 
             icon.textContent = event.valid ? '✅' : '❌'
             verdict.textContent = event.valid ? 'ACCESO CONCEDIDO' : 'ACCESO DENEGADO'
