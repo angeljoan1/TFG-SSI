@@ -156,6 +156,17 @@ const main = async () => {
           }
         } catch { }
 
+        // Regenerar invitación OOB para el siguiente operario
+        try {
+          const newOob = await verifier.oob.createInvitation({
+            label: 'Control de Acceso — Planta Industrial',
+            multiUseInvitation: true,
+            handshakeProtocols: [HandshakeProtocol.DidExchange],
+          })
+          invitationUrl = newOob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
+          console.log('[OOB] Nueva invitación generada.')
+        } catch { }
+
         console.log('\n[INFO] Verificador listo para el siguiente operario.\n')
       }
 
