@@ -10,12 +10,17 @@
 
 import { AgentFactory, IndustrialAgent } from './config/AgentFactory'
 import {
+  ConnectionStateChangedEvent,
+  ConnectionEventTypes,
+  DidExchangeState,
   ProofStateChangedEvent,
   ProofEventTypes,
   ProofState,
+  HandshakeProtocol,
 } from '@credo-ts/core'
 import express, { Request, Response } from 'express'
 import path from 'path'
+
 
 // ─── Constantes de infraestructura ───────────────────────────────────────────
 // Estos IDs son los registrados en BCovrin por setup.ts.
@@ -51,7 +56,7 @@ interface VerificationEvent {
 }
 let lastEvent: VerificationEvent | null = null
 
-let generateProofQR: () => Promise<string>
+let invitationUrl = ''
 // ─── Lógica principal ─────────────────────────────────────────────────────────
 const main = async () => {
   console.log('================================================================')
@@ -84,34 +89,6 @@ const main = async () => {
   console.log(`[OK] Agente inicializado. Escuchando en puerto ${PORT}.`)
   console.log(`[OK] Endpoint público: ${ngrokEndpoint}\n`)
 
-  generateProofQR = async (): Promise<string> => {
-    const { message } = await verifier.proofs.createRequest({
-      protocolVersion: 'v2',
-      proofFormats: {
-        anoncreds: {
-          name: 'control-acceso-planta',
-          version: '1.0',
-          requested_attributes: {
-            grupo_equipo:     { name: 'equipo',      restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
-            grupo_tarea:      { name: 'tarea',       restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
-            grupo_zona:       { name: 'zona',        restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
-            grupo_nivel_atex: { name: 'nivel_atex',  restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
-            grupo_proceso:    { name: 'proceso',     restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
-            grupo_norma:      { name: 'norma',       restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
-          },
-          requested_predicates: {},
-        },
-      },
-    })
-
-    const oob = await verifier.oob.createInvitation({
-      label: 'Control de Acceso — Planta Industrial',
-      multiUseInvitation: false,
-      messages: [message],
-    })
-
-    return oob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
-  }
 
   // ── 3. Listener de pruebas (el núcleo del verificador) ────────────────────
   // Este bloque es el "portero": reacciona a cada cambio de estado
@@ -140,37 +117,44 @@ const main = async () => {
       if (proofRecord.state === ProofState.Done) {
         const isValid = proofRecord.isVerified
 
-if (isValid) {
-  console.log('\n✅  ACCESO CONCEDIDO — PRUEBA ZKP VÁLIDA')
-  const attrs: Record<string, string> = {}
-  try {
-    const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
-    const revealedAttrs =
-      formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
-    for (const [k, v] of Object.entries(revealedAttrs)) {
-      attrs[k] = (v as any).raw
-    }
-  } catch {}
-  lastEvent = { ts: new Date().toISOString(), valid: true, attrs, missing: [] }
-  console.log('[PROOF] Atributos revelados:', attrs)
-} else {
-  console.log('\n❌  ACCESO DENEGADO — PRUEBA ZKP INVÁLIDA')
-  const missing: string[] = []
-  try {
-    const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
-    const revealedAttrs =
-      formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
-    const revealed = Object.keys(revealedAttrs)
-    if (!revealed.includes('grupo_equipo') || !revealed.includes('grupo_tarea'))
-      missing.push('Orden de Trabajo')
-    if (!revealed.includes('grupo_zona') || !revealed.includes('grupo_nivel_atex'))
-      missing.push('Certificado ATEX')
-    if (!revealed.includes('grupo_proceso') || !revealed.includes('grupo_norma'))
-      missing.push('Homologación Soldador')
-  } catch {}
-  lastEvent = { ts: new Date().toISOString(), valid: false, attrs: {}, missing }
-  console.log('[MOTIVO] Credenciales ausentes:', missing)
-}
+        if (isValid) {
+          console.log('\n✅  ACCESO CONCEDIDO — PRUEBA ZKP VÁLIDA')
+          const attrs: Record<string, string> = {}
+          try {
+            const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
+            const revealedAttrs =
+              formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+            for (const [k, v] of Object.entries(revealedAttrs)) {
+              attrs[k] = (v as any).raw
+            }
+          } catch { }
+          lastEvent = { ts: new Date().toISOString(), valid: true, attrs, missing: [] }
+          console.log('[PROOF] Atributos revelados:', attrs)
+        } else {
+          console.log('\n❌  ACCESO DENEGADO — PRUEBA ZKP INVÁLIDA')
+          const missing: string[] = []
+          try {
+            const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
+            const revealedAttrs =
+              formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+            const revealed = Object.keys(revealedAttrs)
+            if (!revealed.includes('grupo_equipo') || !revealed.includes('grupo_tarea'))
+              missing.push('Orden de Trabajo')
+            if (!revealed.includes('grupo_zona') || !revealed.includes('grupo_nivel_atex'))
+              missing.push('Certificado ATEX')
+            if (!revealed.includes('grupo_proceso') || !revealed.includes('grupo_norma'))
+              missing.push('Homologación Soldador')
+          } catch { }
+          lastEvent = { ts: new Date().toISOString(), valid: false, attrs: {}, missing }
+          console.log('[MOTIVO] Credenciales ausentes:', missing)
+        }
+
+        try {
+          if (proofRecord.connectionId) {
+            await verifier.connections.deleteById(proofRecord.connectionId)
+            console.log('[CONN] Conexión eliminada. Listo para el siguiente operario.')
+          }
+        } catch { }
 
         console.log('\n[INFO] Verificador listo para el siguiente operario.\n')
       }
@@ -188,24 +172,56 @@ if (isValid) {
   // ── 4. Generar invitación OOB y esperar conexión ──────────────────────────
   // La invitación es multi-uso: múltiples operarios pueden conectarse
   // con el mismo QR sin regenerarlo.
- // ── Servidor Express ─────────────────────────────────────────────────────
+  // ── Servidor Express ─────────────────────────────────────────────────────
   const app = express()
   app.use(express.static(path.join(__dirname, '..', 'public-verifier')))
   app.get('/api/status', (_req: Request, res: Response) => {
     res.json(lastEvent)
   })
-  app.get('/api/qr', async (_req: Request, res: Response) => {
-    try {
-      const url = await generateProofQR()
-      res.json({ url })
-    } catch (e) {
-      res.status(500).json({ error: 'No se pudo generar el QR' })
-    }
+  app.get('/api/qr', (_req: Request, res: Response) => {
+    res.json({ url: invitationUrl })
   })
   const WEB_PORT = PORT + 100
   app.listen(WEB_PORT, () => {
     console.log(`[WEB] Panel de acceso en http://localhost:${WEB_PORT}\n`)
   })
+
+  const oobInvitation = await verifier.oob.createInvitation({
+    label: 'Control de Acceso — Planta Industrial',
+    multiUseInvitation: true,
+    handshakeProtocols: [HandshakeProtocol.DidExchange],
+  })
+  invitationUrl = oobInvitation.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
+  await printQR(invitationUrl)
+
+  verifier.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      const connection = payload.connectionRecord
+      if (connection.state !== DidExchangeState.Completed) return
+      console.log(`\n[CONN] ✓ Operario conectado. ID: ${connection.id}`)
+      await verifier.proofs.requestProof({
+        protocolVersion: 'v2',
+        connectionId: connection.id,
+        proofFormats: {
+          anoncreds: {
+            name: 'control-acceso-planta',
+            version: '1.0',
+            requested_attributes: {
+              grupo_equipo: { name: 'equipo', restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+              grupo_tarea: { name: 'tarea', restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+              grupo_zona: { name: 'zona', restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+              grupo_nivel_atex: { name: 'nivel_atex', restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+              grupo_proceso: { name: 'proceso', restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+              grupo_norma: { name: 'norma', restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+            },
+            requested_predicates: {},
+          },
+        },
+      })
+      console.log('[PROOF] Solicitud enviada. Esperando ZKP...')
+    }
+  )
 
   console.log('--> [3/4] Listo. Generando QR bajo demanda...\n')
   console.log('================================================================')
