@@ -117,17 +117,44 @@ const main = async () => {
       if (proofRecord.state === ProofState.Done) {
         const isValid = proofRecord.isVerified
 
+        // Extraer atributos para validar fecha
+const attrs: Record<string, string> = {}
+try {
+  const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
+  const revealedAttrs =
+    formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+  for (const [k, v] of Object.entries(revealedAttrs)) {
+    attrs[k] = (v as any).raw
+  }
+} catch {}
+
+// Validar fecha de la OT
+const today = new Date().toISOString().split('T')[0]
+if (isValid && attrs['grupo_fecha'] !== today) {
+  console.log(`[ACCESO DENEGADO] Fecha OT: ${attrs['grupo_fecha']} · Hoy: ${today}`)
+  lastEvent = {
+    ts: new Date().toISOString(),
+    valid: false,
+    attrs,
+    missing: ['Orden de Trabajo (OT caducada — no es del día de hoy)'],
+  }
+  try {
+    if (proofRecord.connectionId)
+      await verifier.connections.deleteById(proofRecord.connectionId)
+    const newOob = await verifier.oob.createInvitation({
+      label: 'Control de Acceso — Planta Industrial',
+      multiUseInvitation: true,
+      handshakeProtocols: [HandshakeProtocol.DidExchange],
+    })
+    invitationUrl = newOob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
+  } catch {}
+  console.log('\n[INFO] Verificador listo para el siguiente operario.\n')
+  return
+}
+
         if (isValid) {
           console.log('\n✅  ACCESO CONCEDIDO — PRUEBA ZKP VÁLIDA')
-          const attrs: Record<string, string> = {}
-          try {
-            const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
-            const revealedAttrs =
-              formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
-            for (const [k, v] of Object.entries(revealedAttrs)) {
-              attrs[k] = (v as any).raw
-            }
-          } catch { }
+          
           lastEvent = { ts: new Date().toISOString(), valid: true, attrs, missing: [] }
           console.log('[PROOF] Atributos revelados:', attrs)
         } else {
@@ -205,53 +232,56 @@ const main = async () => {
   invitationUrl = oobInvitation.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
   await printQR(invitationUrl)
 
-verifier.events.on<ConnectionStateChangedEvent>(
-  ConnectionEventTypes.ConnectionStateChanged,
-  async ({ payload }) => {
-    const connection = payload.connectionRecord
-    if (connection.state !== DidExchangeState.Completed) return
+  verifier.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      const connection = payload.connectionRecord
+      if (connection.state !== DidExchangeState.Completed) return
 
-    console.log(`\n[CONN] ✓ Operario conectado. ID: ${connection.id}`)
+      console.log(`\n[CONN] ✓ Operario conectado. ID: ${connection.id}`)
 
-    await verifier.proofs.requestProof({
-      protocolVersion: 'v2',
-      connectionId: connection.id,
-      proofFormats: {
-        anoncreds: {
-          name: 'control-acceso-planta',
-          version: '1.0',
-          requested_attributes: {
-            grupo_equipo:     { name: 'equipo',     restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
-            grupo_tarea:      { name: 'tarea',      restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
-            grupo_zona:       { name: 'zona',       restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
-            grupo_nivel_atex: { name: 'nivel_atex', restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
-            grupo_proceso:    { name: 'proceso',    restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
-            grupo_norma:      { name: 'norma',      restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+      await verifier.proofs.requestProof({
+        protocolVersion: 'v2',
+        connectionId: connection.id,
+        proofFormats: {
+          anoncreds: {
+            name: 'control-acceso-planta',
+            version: '1.0',
+            requested_attributes: {
+              grupo_equipo: { name: 'equipo', restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+              grupo_tarea: { name: 'tarea', restrictions: [{ cred_def_id: CRED_DEF_ID_OT }] },
+              grupo_zona: { name: 'zona', restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+              grupo_nivel_atex: { name: 'nivel_atex', restrictions: [{ cred_def_id: CRED_DEF_ID_ATEX }] },
+              grupo_proceso: { name: 'proceso', restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+              grupo_norma: { name: 'norma', restrictions: [{ cred_def_id: CRED_DEF_ID_SOLDADOR }] },
+              grupo_fecha: {
+                name: 'fecha', restrictions: [{ cred_def_id: CRED_DEF_ID_OT }],
+              },
+            },
+            requested_predicates: {},
           },
-          requested_predicates: {},
         },
-      },
-    })
-    console.log('[PROOF] Solicitud enviada. Esperando ZKP...')
+      })
+      console.log('[PROOF] Solicitud enviada. Esperando ZKP...')
 
-    // Timeout: si en 30s no llega prueba, renovar QR
-    setTimeout(async () => {
-      try {
-        const conn = await verifier.connections.getById(connection.id)
-        if (conn) {
-          await verifier.connections.deleteById(connection.id)
-          const newOob = await verifier.oob.createInvitation({
-            label: 'Control de Acceso — Planta Industrial',
-            multiUseInvitation: true,
-            handshakeProtocols: [HandshakeProtocol.DidExchange],
-          })
-          invitationUrl = newOob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
-          console.log('[TIMEOUT] Sin respuesta. QR renovado.')
-        }
-      } catch {}
-    }, 20_000)
-  }
-)
+      // Timeout: si en 30s no llega prueba, renovar QR
+      setTimeout(async () => {
+        try {
+          const conn = await verifier.connections.getById(connection.id)
+          if (conn) {
+            await verifier.connections.deleteById(connection.id)
+            const newOob = await verifier.oob.createInvitation({
+              label: 'Control de Acceso — Planta Industrial',
+              multiUseInvitation: true,
+              handshakeProtocols: [HandshakeProtocol.DidExchange],
+            })
+            invitationUrl = newOob.outOfBandInvitation.toUrl({ domain: ngrokEndpoint })
+            console.log('[TIMEOUT] Sin respuesta. QR renovado.')
+          }
+        } catch { }
+      }, 20_000)
+    }
+  )
 
   console.log('--> [3/4] Listo. Generando QR bajo demanda...\n')
   console.log('================================================================')
