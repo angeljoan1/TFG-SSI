@@ -18,6 +18,8 @@ import {
   ProofState,
   HandshakeProtocol,
 } from '@credo-ts/core'
+import express, { Request, Response } from 'express'
+import path from 'path'
 
 // ─── Constantes de infraestructura ───────────────────────────────────────────
 // Estos IDs son los registrados en BCovrin por setup.ts.
@@ -45,6 +47,15 @@ async function printQR(url: string): Promise<void> {
   console.log(`\n📲 URL de invitación:\n${url}\n`)
 }
 
+interface VerificationEvent {
+  ts: string
+  valid: boolean
+  attrs: Record<string, string>
+  missing: string[]
+}
+let lastEvent: VerificationEvent | null = null
+
+let invitationUrl = ''
 // ─── Lógica principal ─────────────────────────────────────────────────────────
 const main = async () => {
   console.log('================================================================')
@@ -104,40 +115,37 @@ const main = async () => {
       if (proofRecord.state === ProofState.Done) {
         const isValid = proofRecord.isVerified
 
-        if (isValid) {
-          console.log('\n╔══════════════════════════════════════════════╗')
-          console.log('║  ✅  ACCESO CONCEDIDO — PRUEBA ZKP VÁLIDA    ║')
-          console.log('╚══════════════════════════════════════════════╝')
-
-          // Extraer los atributos revelados de la prueba
-          // (solo 'equipo' y 'tarea'; 'id_orden' y 'fecha' NO se revelan)
-          try {
-            const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
-            const revealedAttrs =
-              formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
-
-            console.log('\n[PROOF] Atributos revelados por el operario:')
-            for (const [attrName, attrData] of Object.entries(revealedAttrs)) {
-              // raw es el valor en texto plano; encoded es el valor criptográfico
-              console.log(`        · ${attrName}: ${(attrData as any).raw}`)
-            }
-            console.log('\n[PRIVACIDAD] Atributos NO revelados (nunca salieron del wallet):')
-            console.log('             OT → id_orden, fecha')
-            console.log('             ATEX → id_cert, trabajador, fecha_expiracion')
-            console.log('             SOLDADOR → id_cert, trabajador, fecha_expiracion  ✓')
-            console.log('             nunca salieron del wallet del operario. ✓')
-          } catch (e) {
-            console.log('[WARN] No se pudieron extraer los atributos revelados:', e)
-          }
-
-        } else {
-          console.log('\n╔══════════════════════════════════════════════╗')
-          console.log('║  ❌  ACCESO DENEGADO — PRUEBA ZKP INVÁLIDA   ║')
-          console.log('╚══════════════════════════════════════════════╝')
-          console.log('[MOTIVO] La prueba no superó la verificación criptográfica.')
-          console.log('         Posibles causas: credencial revocada, falsificada,')
-          console.log('         o no emitida por el emisor registrado en BCovrin.')
-        }
+if (isValid) {
+  console.log('\n✅  ACCESO CONCEDIDO — PRUEBA ZKP VÁLIDA')
+  const attrs: Record<string, string> = {}
+  try {
+    const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
+    const revealedAttrs =
+      formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+    for (const [k, v] of Object.entries(revealedAttrs)) {
+      attrs[k] = (v as any).raw
+    }
+  } catch {}
+  lastEvent = { ts: new Date().toISOString(), valid: true, attrs, missing: [] }
+  console.log('[PROOF] Atributos revelados:', attrs)
+} else {
+  console.log('\n❌  ACCESO DENEGADO — PRUEBA ZKP INVÁLIDA')
+  const missing: string[] = []
+  try {
+    const formattedProof = await verifier.proofs.getFormatData(proofRecord.id)
+    const revealedAttrs =
+      formattedProof.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+    const revealed = Object.keys(revealedAttrs)
+    if (!revealed.includes('grupo_equipo') || !revealed.includes('grupo_tarea'))
+      missing.push('Orden de Trabajo')
+    if (!revealed.includes('grupo_zona') || !revealed.includes('grupo_nivel_atex'))
+      missing.push('Certificado ATEX')
+    if (!revealed.includes('grupo_proceso') || !revealed.includes('grupo_norma'))
+      missing.push('Homologación Soldador')
+  } catch {}
+  lastEvent = { ts: new Date().toISOString(), valid: false, attrs: {}, missing }
+  console.log('[MOTIVO] Credenciales ausentes:', missing)
+}
 
         console.log('\n[INFO] Verificador listo para el siguiente operario.\n')
       }
@@ -155,7 +163,21 @@ const main = async () => {
   // ── 4. Generar invitación OOB y esperar conexión ──────────────────────────
   // La invitación es multi-uso: múltiples operarios pueden conectarse
   // con el mismo QR sin regenerarlo.
-  console.log('--> [3/4] Generando invitación OOB para operarios...')
+  // ── Servidor Express ──────────────────────────────────────────────────────
+const app = express()
+app.use(express.static(path.join(__dirname, '..', 'public-verifier')))
+app.get('/api/status', (_req: Request, res: Response) => {
+  res.json(lastEvent)
+})
+app.get('/api/qr', (_req: Request, res: Response) => {
+  res.json({ url: invitationUrl })
+})
+const WEB_PORT = PORT + 100 // 3102
+app.listen(WEB_PORT, () => {
+  console.log(`[WEB] Panel de acceso en http://localhost:${WEB_PORT}\n`)
+})
+
+console.log('--> [3/4] Generando invitación OOB para operarios...')
 
   const oobInvitation = await verifier.oob.createInvitation({
     label: 'Control de Acceso — Planta Industrial',
@@ -163,7 +185,7 @@ const main = async () => {
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
 
-  const invitationUrl = oobInvitation.outOfBandInvitation.toUrl({
+  invitationUrl = oobInvitation.outOfBandInvitation.toUrl({
     domain: ngrokEndpoint,
   })
 

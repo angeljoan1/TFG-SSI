@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control de Acceso — Planta Industrial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ok:       #1a7a4a;
+      --ok-bg:    #f0faf5;
+      --ok-b:     #a8d5bc;
+      --err:      #c0392b;
+      --err-bg:   #fdf2f2;
+      --err-b:    #e8a89e;
+      --wait-bg:  #f4f5f7;
+      --text:     #1a2332;
+      --text-dim: #6b7a8d;
+      --border:   #d0d5dd;
+      --accent:   #1a4f8a;
+      --sans:     'Barlow', sans-serif;
+      --cond:     'Barlow Condensed', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--sans);
+      background: var(--wait-bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      transition: background 600ms ease;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-logo {
+      width: 36px; height: 36px; border-radius: 6px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      color: #fff; font-family: var(--cond); font-weight: 900; font-size: 16px; letter-spacing: -.02em;
+    }
+    .header-title { font-weight: 700; font-size: 16px; color: var(--text); }
+    .header-sub { font-size: 12px; color: var(--text-dim); }
+    .header-right { font-size: 12px; color: var(--text-dim); font-family: 'Courier New', monospace; }
+    #clock { color: var(--text); font-weight: 600; }
+
+    /* ── Main area ── */
+    main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px; gap: 32px;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; flex-direction: column; align-items: center; gap: 24px; width: 100%; max-width: 560px; }
+    .screen.active { display: flex; animation: fadeIn 400ms ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* QR screen */
+    .qr-label {
+      font-family: var(--cond); font-weight: 700; font-size: 22px;
+      letter-spacing: .02em; color: var(--text); text-align: center;
+    }
+    .qr-sub { font-size: 14px; color: var(--text-dim); text-align: center; }
+    .qr-box {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    #qr-img { width: 220px; height: 220px; }
+    .qr-hint {
+      font-size: 13px; color: var(--text-dim); text-align: center;
+      border-top: 1px solid var(--border); padding-top: 14px; width: 100%;
+    }
+    .pulse-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+      display: inline-block; margin-right: 6px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+    /* Verifying screen */
+    .verify-spinner {
+      width: 56px; height: 56px; border-radius: 50%;
+      border: 4px solid var(--border); border-top-color: var(--accent);
+      animation: spin 900ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .verify-label { font-family: var(--cond); font-weight: 700; font-size: 24px; color: var(--text); }
+    .verify-sub { font-size: 14px; color: var(--text-dim); }
+
+    /* Result screen */
+    .result-icon {
+      font-size: 72px; line-height: 1;
+      animation: iconPop 400ms cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes iconPop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .result-verdict {
+      font-family: var(--cond); font-weight: 900;
+      font-size: clamp(36px, 6vw, 56px); letter-spacing: .02em; text-align: center;
+    }
+    .result-verdict.ok  { color: var(--ok); }
+    .result-verdict.err { color: var(--err); }
+
+    /* Credential cards */
+    .creds-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .cred-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 18px; display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+    .cred-card.present { border-left: 3px solid var(--ok); }
+    .cred-card.missing { border-left: 3px solid var(--err); background: var(--err-bg); }
+    .cred-header { display: flex; align-items: center; gap: 10px; }
+    .cred-status { font-size: 18px; flex-shrink: 0; }
+    .cred-name { font-weight: 700; font-size: 14px; }
+    .cred-name.missing { color: var(--err); }
+    .cred-attrs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .attr-chip {
+      background: #f4f5f7; border: 1px solid var(--border); border-radius: 4px;
+      padding: 3px 10px; font-size: 12px; font-family: 'Courier New', monospace;
+      color: var(--text);
+    }
+    .attr-chip span { color: var(--text-dim); margin-right: 4px; }
+    .missing-reason {
+      font-size: 13px; color: var(--err); margin-top: 2px;
+    }
+
+    /* Countdown bar */
+    .countdown-bar {
+      width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+    }
+    .countdown-fill {
+      height: 100%; border-radius: 2px;
+      animation: countdown linear forwards;
+    }
+    .countdown-fill.ok  { background: var(--ok); }
+    .countdown-fill.err { background: var(--err); }
+    @keyframes countdown { from { width: 100%; } to { width: 0%; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <div class="header-logo">SSI</div>
+    <div>
+      <div class="header-title">Control de Acceso — Planta Industrial</div>
+      <div class="header-sub">Sistema de Identidad Auto-Soberana · AnonCreds ZKP</div>
+    </div>
+  </div>
+  <div class="header-right"><span id="clock"></span></div>
+</header>
+
+<main>
+
+  <!-- PANTALLA 1: QR -->
+  <div class="screen active" id="screen-qr">
+    <div class="qr-label">Escanea para verificar acceso</div>
+    <div class="qr-sub">El operario debe presentar sus credenciales con BC Wallet</div>
+    <div class="qr-box">
+      <img id="qr-img" src="" alt="QR de verificación" />
+      <div class="qr-hint">
+        <span class="pulse-dot"></span>
+        Sistema activo · Esperando operario
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA 2: Verificando -->
+  <div class="screen" id="screen-verify">
+    <div class="verify-spinner"></div>
+    <div class="verify-label">Verificando credenciales…</div>
+    <div class="verify-sub">Validando prueba ZKP contra BCovrin Testnet</div>
+  </div>
+
+  <!-- PANTALLA 3: Resultado -->
+  <div class="screen" id="screen-result">
+    <div class="result-icon" id="result-icon"></div>
+    <div class="result-verdict" id="result-verdict"></div>
+    <div class="creds-grid" id="creds-grid"></div>
+    <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill"></div></div>
+  </div>
+
+</main>
+
+<script>
+  // ── Reloj ──────────────────────────────────────────────────────────────────
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('es-ES', { hour12: false })
+  }
+  updateClock()
+  setInterval(updateClock, 1000)
+
+  // ── Estado ─────────────────────────────────────────────────────────────────
+  let currentScreen = 'qr'
+  let lastTs = null
+  let resultTimer = null
+  const RESULT_DURATION = 8000  // ms antes de volver al QR
+
+  const CRED_META = {
+    ot:      { label: 'Orden de Trabajo',      attrs: ['grupo_equipo', 'grupo_tarea'],         keys: ['equipo', 'tarea'] },
+    atex:    { label: 'Certificado ATEX',       attrs: ['grupo_zona', 'grupo_nivel_atex'],      keys: ['zona', 'nivel_atex'] },
+    soldador:{ label: 'Homologación Soldador',  attrs: ['grupo_proceso', 'grupo_norma'],        keys: ['proceso', 'norma'] },
+  }
+
+  // ── Pantallas ──────────────────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    document.getElementById('screen-' + id).classList.add('active')
+    currentScreen = id
+  }
+
+  // ── QR ─────────────────────────────────────────────────────────────────────
+  async function loadQR() {
+    try {
+      const r = await fetch('/api/qr')
+      const { url } = await r.json()
+      if (url) {
+        // Generar QR usando API pública sin dependencias
+        const encoded = encodeURIComponent(url)
+        document.getElementById('qr-img').src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encoded}`
+      }
+    } catch {}
+  }
+
+  // ── Render resultado ───────────────────────────────────────────────────────
+  function renderResult(event) {
+    const icon    = document.getElementById('result-icon')
+    const verdict = document.getElementById('result-verdict')
+    const grid    = document.getElementById('creds-grid')
+    const fill    = document.getElementById('countdown-fill')
+
+    icon.textContent    = event.valid ? '✅' : '❌'
+    verdict.textContent = event.valid ? 'ACCESO CONCEDIDO' : 'ACCESO DENEGADO'
+    verdict.className   = 'result-verdict ' + (event.valid ? 'ok' : 'err')
+
+    grid.innerHTML = ''
+
+    for (const [key, meta] of Object.entries(CRED_META)) {
+      const isMissing = event.missing.includes(meta.label)
+      const card = document.createElement('div')
+      card.className = 'cred-card ' + (isMissing ? 'missing' : 'present')
+
+      const header = document.createElement('div')
+      header.className = 'cred-header'
+      header.innerHTML = `
+        <span class="cred-status">${isMissing ? '✗' : '✓'}</span>
+        <span class="cred-name ${isMissing ? 'missing' : ''}">${meta.label}</span>
+      `
+      card.appendChild(header)
+
+      if (!isMissing && event.valid) {
+        const attrsDiv = document.createElement('div')
+        attrsDiv.className = 'cred-attrs'
+        meta.attrs.forEach((groupKey, i) => {
+          const val = event.attrs[groupKey]
+          if (val) {
+            const chip = document.createElement('div')
+            chip.className = 'attr-chip'
+            chip.innerHTML = `<span>${meta.keys[i]}:</span>${val}`
+            attrsDiv.appendChild(chip)
+          }
+        })
+        card.appendChild(attrsDiv)
+      }
+
+      if (isMissing) {
+        const reason = document.createElement('div')
+        reason.className = 'missing-reason'
+        reason.textContent = 'Credencial no presentada o no válida'
+        card.appendChild(reason)
+      }
+
+      grid.appendChild(card)
+    }
+
+    // Countdown bar
+    fill.className = 'countdown-fill ' + (event.valid ? 'ok' : 'err')
+    fill.style.animationDuration = RESULT_DURATION + 'ms'
+    // Reiniciar animación
+    fill.style.animation = 'none'
+    fill.offsetHeight  // reflow
+    fill.style.animation = ''
+    fill.style.animationDuration = RESULT_DURATION + 'ms'
+
+    // Fondo de pantalla
+    document.body.style.background = event.valid ? '#f0faf5' : '#fdf2f2'
+
+    clearTimeout(resultTimer)
+    resultTimer = setTimeout(() => {
+      document.body.style.background = ''
+      showScreen('qr')
+    }, RESULT_DURATION)
+  }
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+  async function poll() {
+    try {
+      const r = await fetch('/api/status')
+      const event = await r.json()
+
+      if (!event) return  // sin eventos aún
+
+      if (event.ts !== lastTs) {
+        lastTs = event.ts
+        showScreen('result')
+        renderResult(event)
+      }
+    } catch {}
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadQR()
+  setInterval(poll, 1500)
+</script>
+</body>
+</html>

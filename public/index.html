@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oficina Técnica — Emisión de Órdenes de Trabajo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #f4f5f7;
+            --surface: #ffffff;
+            --surface-2: #f0f1f3;
+            --border: #d0d5dd;
+            --border-hi: #a0aabb;
+            --accent: #1a4f8a;
+            --accent-dim: #2d6ab4;
+            --accent-glow: rgba(26, 79, 138, 0.08);
+            --warn: #c0392b;
+            --warn-glow: rgba(192, 57, 43, 0.08);
+            --ok: #1a7a4a;
+            --ok-glow: rgba(26, 122, 74, 0.08);
+            --text: #1a2332;
+            --text-dim: #6b7a8d;
+            --text-mid: #4a5568;
+            --mono: 'Courier New', monospace;
+            --sans: 'Barlow', sans-serif;
+            --cond: 'Barlow Condensed', sans-serif;
+            --r: 6px;
+            --ease: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 15px;
+            background-image: none;
+        }
+
+        .shell {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 24px;
+            margin-bottom: 36px;
+        }
+
+        .badge {
+            display: inline-block;
+            font-family: var(--sans);
+            font-size: 11px;
+            letter-spacing: .08em;
+            color: var(--accent);
+            background: var(--accent-glow);
+            border: 1px solid var(--accent-dim);
+            border-radius: 3px;
+            padding: 3px 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        header h1 {
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: clamp(22px, 4vw, 32px);
+            color: var(--text);
+            line-height: 1.1;
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        header p {
+            margin-top: 6px;
+            color: var(--text-dim);
+            font-family: var(--mono);
+            font-size: 13px;
+            letter-spacing: .05em;
+        }
+
+        /* Section label */
+        .slabel {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: .2em;
+            color: var(--accent-dim);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slabel::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 24px;
+            margin-bottom: 20px;
+            position: relative;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .card::before {
+            display: none;
+        }
+
+        .card.warn-card {
+            border-left: 3px solid var(--warn);
+        }
+
+        /* Alert banner */
+        .alert-banner {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: var(--warn-glow);
+            border: 1px solid var(--warn);
+            border-radius: var(--r);
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--warn);
+            animation: fadeIn .3s ease;
+        }
+
+        .alert-banner.visible {
+            display: flex;
+        }
+
+        .alert-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warn);
+            flex-shrink: 0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        /* Pending list */
+        .pending-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .pending-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 10px 14px;
+        }
+
+        .pending-connid {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-mid);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pending-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pending-form input {
+            background: var(--bg);
+            border: 1px solid var(--border-hi);
+            border-radius: var(--r);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 7px 12px;
+            outline: none;
+            width: 180px;
+            transition: var(--ease);
+        }
+
+        .pending-form input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .pending-form input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .btn-sm {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 7px 14px;
+            border-radius: var(--r);
+            border: none;
+            cursor: pointer;
+            transition: var(--ease);
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: #00eeff;
+            box-shadow: 0 0 16px rgba(0, 212, 255, .4);
+        }
+
+        .btn-primary:disabled {
+            background: var(--border);
+            color: var(--text-dim);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Operario selector */
+        #op-search {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 14px;
+            padding: 10px 14px;
+            outline: none;
+            transition: var(--ease);
+            margin-bottom: 10px;
+        }
+
+        #op-search:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        #op-search::placeholder {
+            color: var(--text-dim);
+        }
+
+        #op-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .op-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: var(--ease);
+        }
+
+        .op-item:hover {
+            border-color: var(--accent-dim);
+            background: var(--accent-glow);
+        }
+
+        .op-item.selected {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .op-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 6px var(--ok);
+            flex-shrink: 0;
+        }
+
+        .op-name {
+            font-family: var(--sans);
+            font-weight: 600;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .op-connid {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+
+        .op-check {
+            color: var(--accent);
+            opacity: 0;
+            transition: opacity 150ms;
+            font-size: 16px;
+        }
+
+        .op-item.selected .op-check {
+            opacity: 1;
+        }
+
+        .op-empty {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text-dim);
+            padding: 10px 0;
+        }
+
+        /* Selected display */
+        .selected-display {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 10px 14px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .selected-display.active {
+            border-color: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .sd-name {
+            color: #fff;
+            font-weight: 600;
+            font-family: var(--sans);
+        }
+
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .fg {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .fg.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: .15em;
+            color: var(--text-mid);
+            text-transform: uppercase;
+        }
+
+        input[type=text],
+        input[type=date] {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 14px;
+            padding: 10px 14px;
+            outline: none;
+            transition: var(--ease);
+            width: 100%;
+        }
+
+        input[type=text]:focus,
+        input[type=date]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input::placeholder {
+            color: var(--text-dim);
+        }
+
+        /* Emit button */
+        #btn-emitir {
+            margin-top: 24px;
+            width: 100%;
+            padding: 13px 24px;
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: .03em;
+            text-transform: none;
+            color: #fff;
+            background: var(--accent);
+            border: none;
+            border-radius: var(--r);
+            cursor: pointer;
+            transition: background var(--ease), box-shadow var(--ease);
+        }
+
+        #btn-emitir:hover {
+            background: #15407a;
+            box-shadow: 0 2px 8px rgba(26, 79, 138, .3);
+        }
+
+        #btn-emitir:active {
+            transform: scale(.99);
+        }
+
+        #btn-emitir:disabled {
+            background: var(--border);
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(130%);
+            min-width: 300px;
+            max-width: 90vw;
+            padding: 14px 20px;
+            border-radius: var(--r);
+            font-family: var(--mono);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 350ms cubic-bezier(.34, 1.56, .64, 1);
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #toast.ok {
+            background: #f0faf5;
+            border: 1px solid #1a7a4a;
+            color: #1a7a4a;
+        }
+
+        #toast.err {
+            background: #fdf2f2;
+            border: 1px solid #c0392b;
+            color: #c0392b;
+        }
+
+        /* Log */
+        #log {
+            margin-top: 28px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-dim);
+            max-height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 3px;
+        }
+
+        .le .ts {
+            color: var(--accent-dim);
+            margin-right: 8px;
+        }
+
+        .le.ok .msg {
+            color: var(--ok);
+        }
+
+        .le.err .msg {
+            color: var(--warn);
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-hi);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+
+        <header>
+            <div class="badge">Sistema SSI Industrial · TFG</div>
+            <h1>Oficina <span>Técnica</span></h1>
+            <p>// Emisión de Órdenes de Trabajo · Protocolo AnonCreds v2.0</p>
+        </header>
+
+        <!-- Alerta pendientes -->
+        <div class="alert-banner" id="alert-pending">
+            <div class="alert-dot"></div>
+            <span id="alert-text">Nueva conexión pendiente de registro</span>
+        </div>
+
+        <!-- 01: Nuevas conexiones pendientes -->
+        <div id="section-pending" style="display:none">
+            <div class="slabel">01 · Nuevos operarios — pendientes de registro</div>
+            <div class="card warn-card">
+                <div class="pending-list" id="pending-list"></div>
+            </div>
+        </div>
+
+        <!-- 02: Selección de operario -->
+        <div class="slabel">02 · Seleccionar operario</div>
+        <div class="card">
+            <input type="text" id="op-search" placeholder="Buscar por nombre…" autocomplete="off" />
+            <div id="op-list"><span class="op-empty">Cargando directorio…</span></div>
+        </div>
+
+        <!-- 03: Datos OT -->
+        <div class="slabel">03 · Datos de la Orden de Trabajo</div>
+        <div class="card">
+            <div class="selected-display" id="selected-display">
+                <span>Operario:</span>
+                <span>— ninguno seleccionado —</span>
+            </div>
+            <div class="form-grid">
+                <div class="fg full">
+                    <label>Equipo / Activo industrial</label>
+                    <input type="text" id="equipo" placeholder="ej. Turbina-T4-Sector7" />
+                </div>
+                <div class="fg full">
+                    <label>Tarea asignada</label>
+                    <input type="text" id="tarea" placeholder="ej. Mantenimiento preventivo trimestral" />
+                </div>
+                <div class="fg">
+                    <label>Fecha de la orden</label>
+                    <input type="date" id="fecha" />
+                </div>
+                <div class="fg" style="justify-content:flex-end">
+                    <label style="visibility:hidden">·</label>
+                    <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);padding-bottom:4px">
+                        ID generado automáticamente<br>
+                        <span style="color:var(--accent-dim)" id="preview-id">ORD-···</span>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-emitir" disabled>Emitir Orden de Trabajo →</button>
+        </div>
+
+        <div id="log"></div>
+    </div>
+
+    <div id="toast"><span id="ti"></span><span id="tm"></span></div>
+
+    <script>
+        let selectedOp = null
+        let allOperarios = []
+
+        const ts = () => new Date().toLocaleTimeString('es-ES', { hour12: false })
+
+        function addLog(msg, type = '') {
+            const el = document.createElement('div')
+            el.className = `le ${type}`
+            el.innerHTML = `<span class="ts">[${ts()}]</span><span class="msg">${msg}</span>`
+            document.getElementById('log').prepend(el)
+        }
+
+        let toastTimer
+        function toast(msg, type = 'ok') {
+            document.getElementById('tm').textContent = msg
+            document.getElementById('ti').textContent = type === 'ok' ? '✔' : '✖'
+            const el = document.getElementById('toast')
+            el.className = `show ${type}`
+            clearTimeout(toastTimer)
+            toastTimer = setTimeout(() => el.className = type, 3500)
+        }
+
+        function checkEmitButton() {
+            const ok = selectedOp &&
+                document.getElementById('equipo').value.trim() &&
+                document.getElementById('tarea').value.trim() &&
+                document.getElementById('fecha').value
+            document.getElementById('btn-emitir').disabled = !ok
+        }
+
+        function renderOperarios(list) {
+            const container = document.getElementById('op-list')
+            if (!list.length) {
+                container.innerHTML = '<span class="op-empty">Sin operarios registrados. Escanea el QR OOB primero.</span>'
+                return
+            }
+            container.innerHTML = ''
+            list.forEach(op => {
+                const item = document.createElement('div')
+                item.className = 'op-item' + (selectedOp?.connectionId === op.connectionId ? ' selected' : '')
+                item.innerHTML = `
+        <div class="op-dot"></div>
+        <span class="op-name">${op.nombre}</span>
+        <span class="op-connid">${op.connectionId}</span>
+        <span class="op-check">✓</span>
+      `
+                item.addEventListener('click', () => selectOp(op))
+                container.appendChild(item)
+            })
+        }
+
+        function selectOp(op) {
+            selectedOp = op
+            document.querySelectorAll('.op-item').forEach(el => {
+                el.classList.toggle('selected', el.querySelector('.op-connid').textContent === op.connectionId)
+            })
+            const disp = document.getElementById('selected-display')
+            disp.className = 'selected-display active'
+            disp.innerHTML = `<span>Operario:</span><span class="sd-name">${op.nombre}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-left:auto">${op.connectionId.slice(0, 8)}…</span>`
+            checkEmitButton()
+            addLog(`Operario seleccionado: ${op.nombre}`)
+        }
+
+        async function loadOperarios() {
+            try {
+                const r = await fetch('/api/operarios')
+                allOperarios = await r.json()
+                const q = document.getElementById('op-search').value.trim().toLowerCase()
+                renderOperarios(q ? allOperarios.filter(o => o.nombre.toLowerCase().includes(q)) : allOperarios)
+            } catch { }
+        }
+
+        document.getElementById('op-search').addEventListener('input', e => {
+            const q = e.target.value.trim().toLowerCase()
+            renderOperarios(q ? allOperarios.filter(o => o.nombre.toLowerCase().includes(q)) : allOperarios)
+        })
+
+        async function loadPending() {
+            try {
+                const r = await fetch('/api/pendientes')
+                const ids = await r.json()
+                const alertEl = document.getElementById('alert-pending')
+                const sectionEl = document.getElementById('section-pending')
+
+                if (!ids.length) {
+                    alertEl.classList.remove('visible')
+                    sectionEl.style.display = 'none'
+                    return
+                }
+
+                alertEl.classList.add('visible')
+                document.getElementById('alert-text').textContent =
+                    ids.length === 1 ? '1 nueva conexión pendiente de registro' : `${ids.length} nuevas conexiones pendientes de registro`
+                sectionEl.style.display = 'block'
+
+                const list = document.getElementById('pending-list')
+                list.innerHTML = ''
+                ids.forEach(connId => {
+                    const item = document.createElement('div')
+                    item.className = 'pending-item'
+                    item.innerHTML = `
+          <span class="pending-connid" title="${connId}">${connId}</span>
+          <div class="pending-form">
+            <input type="text" placeholder="Nombre del operario" />
+            <button class="btn-sm btn-primary" disabled>Registrar</button>
+          </div>
+        `
+                    const input = item.querySelector('input')
+                    const btn = item.querySelector('button')
+                    input.addEventListener('input', () => { btn.disabled = !input.value.trim() })
+                    btn.addEventListener('click', () => registrarOperario(connId, input.value.trim(), item))
+                    list.appendChild(item)
+                })
+            } catch { }
+        }
+
+        async function registrarOperario(connectionId, nombre, itemEl) {
+            const btn = itemEl.querySelector('button')
+            btn.disabled = true
+            btn.textContent = 'Guardando…'
+            try {
+                const r = await fetch('/api/operarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ connectionId, nombre }),
+                })
+                const data = await r.json()
+                if (!r.ok) throw new Error(data.error)
+                toast(`Operario "${nombre}" registrado ✓`, 'ok')
+                addLog(`Registrado: ${nombre} → ${connectionId.slice(0, 8)}…`, 'ok')
+                await Promise.all([loadPending(), loadOperarios()])
+            } catch (err) {
+                toast(`Error: ${err.message}`, 'err')
+                btn.disabled = false
+                btn.textContent = 'Registrar'
+            }
+        }
+
+        document.getElementById('btn-emitir').addEventListener('click', async () => {
+            const equipo = document.getElementById('equipo').value.trim()
+            const tarea = document.getElementById('tarea').value.trim()
+            const fecha = document.getElementById('fecha').value
+            const btn = document.getElementById('btn-emitir')
+            btn.disabled = true
+            btn.textContent = 'Emitiendo…'
+            addLog(`Emitiendo OT → ${selectedOp.nombre} | ${equipo}`)
+            try {
+                const r = await fetch('/api/emitir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ connectionId: selectedOp.connectionId, equipo, tarea, fecha }),
+                })
+                const data = await r.json()
+                if (!r.ok) throw new Error(data.error)
+                toast(`OT enviada al wallet de ${selectedOp.nombre} ✓`, 'ok')
+                addLog(`OT emitida: ${data.id_orden}`, 'ok')
+            } catch (err) {
+                toast(`Error: ${err.message}`, 'err')
+                addLog(`Error: ${err.message}`, 'err')
+            } finally {
+                btn.disabled = false
+                btn.textContent = 'Emitir Orden de Trabajo →'
+                checkEmitButton()
+            }
+        })
+
+        // Init
+        document.getElementById('fecha').value = new Date().toISOString().split('T')[0]
+        document.getElementById('preview-id').textContent = `ORD-${Date.now()}`
+            ;['equipo', 'tarea', 'fecha'].forEach(id =>
+                document.getElementById(id).addEventListener('input', checkEmitButton)
+            )
+        loadOperarios()
+        loadPending()
+        setInterval(() => { loadPending(); loadOperarios() }, 8000)
+    </script>
+</body>
+
+</html>
