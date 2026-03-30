@@ -488,7 +488,7 @@
             grid.innerHTML = ''
 
             for (const [key, meta] of Object.entries(CRED_META)) {
-                const isMissing = event.missing.includes(meta.label)
+                const isMissing = event.missing.some(m => m.startsWith(meta.label))
                 const card = document.createElement('div')
                 card.className = 'cred-card ' + (isMissing ? 'missing' : 'present')
 
@@ -518,7 +518,7 @@
                 if (isMissing) {
                     const reason = document.createElement('div')
                     reason.className = 'missing-reason'
-                    reason.textContent = 'Credencial no presentada o no válida'
+                    reason.textContent = event.missing.find(m => m.startsWith(meta.label)) ?? 'Credencial no presentada o no válida'
                     card.appendChild(reason)
                 }
 
