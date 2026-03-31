@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "Arquitectura SSI Industrial - Entorno Estable y Alineado",
   "main": "index.js",
-  "scripts": {
-    "start": "tsx src/setup.ts"
-  },
+"scripts": {
+  "start":     "tsx src/setup.ts",
+  "emissor":   "tsx src/issuer.ts",
+  "atex":      "tsx src/issuerAtex.ts",
+  "soldador":  "tsx src/issuerSoldador.ts",
+  "verificador": "tsx src/verificador.ts"
+},
   "dependencies": {
     "@credo-ts/anoncreds": "^0.5.0",
     "@credo-ts/askar": "^0.5.0",

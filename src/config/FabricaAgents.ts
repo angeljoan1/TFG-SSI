@@ -1,4 +1,7 @@
-// ARCHIVO: src/config/AgentFactory.ts
+// arxiu: src/config/FabricaAgents.ts
+// la factoria que crea tots els agents (emissor, verificador...)
+// tots passen per aquí, si alguna cosa falla en l'arrencada mira primer aquí
+
 import {
   Agent,
   InitConfig,
@@ -33,71 +36,85 @@ import {
 } from '@credo-ts/indy-vdr'
 import { indyVdr } from '@hyperledger/indy-vdr-nodejs'
 
-export interface AgentTransportConfig {
+// configuració de transport: port local + endpoint públic de ngrok
+export interface ConfigTransport {
   port: number
-  endpoints: string[] // ej: ['https://xxxx.ngrok-free.app']
+  endpoints: string[]
 }
 
-type IndustrialCredentialProtocol = V2CredentialProtocol<
+// tipus interns per no haver de fer casteos per tot arreu
+type ProtocolCredencial = V2CredentialProtocol<
   [LegacyIndyCredentialFormatService, AnonCredsCredentialFormatService]
 >
 
-type IndustrialProofProtocol = V2ProofProtocol<
+type ProtocolProva = V2ProofProtocol<
   [LegacyIndyProofFormatService, AnonCredsProofFormatService]
 >
 
-type IndustrialAgentModules = {
+type ModulsAgent = {
   askar: AskarModule
   anoncreds: AnonCredsModule
   indyVdr: IndyVdrModule
   dids: DidsModule
   connections: ConnectionsModule
-  credentials: CredentialsModule<[IndustrialCredentialProtocol]>
-  proofs: ProofsModule<[IndustrialProofProtocol]>
+  credentials: CredentialsModule<[ProtocolCredencial]>
+  proofs: ProofsModule<[ProtocolProva]>
 }
 
-export type IndustrialAgent = Agent<IndustrialAgentModules>
+export type AgentIndustrial = Agent<ModulsAgent>
 
-export class AgentFactory {
-  public static async create(
-    name: string,
-    walletKey: string,
-    transport?: AgentTransportConfig
-  ): Promise<IndustrialAgent> {
+// caché del genesis — només el descarregam una vegada per sessió
+// si el tornam a demanar cada vegada i BCovrin va lent, els arrencades tarden molt
+let genesisEnCaché: string | null = null
 
-    const genesisResponse = await fetch('https://test.bcovrin.vonx.io/genesis')
-    const genesisTransactions = await genesisResponse.text()
+async function obtenirGenesis(): Promise<string> {
+  if (genesisEnCaché) return genesisEnCaché
+  console.log('[genesis] descarregant de BCovrin...')
+  const resposta = await fetch('https://test.bcovrin.vonx.io/genesis')
+  genesisEnCaché = await resposta.text()
+  console.log('[genesis] ok, en caché per a la resta de la sessió')
+  return genesisEnCaché
+}
+
+export class FabricaAgents {
+  public static async crear(
+    nom: string,
+    clauWallet: string,
+    transport?: ConfigTransport
+  ): Promise<AgentIndustrial> {
+
+    const genesisTransactions = await obtenirGenesis()
 
     const config: InitConfig = {
-      label: name,
+      label: nom,
       walletConfig: {
-        id: `wallet-${name.toLowerCase().replace(/\s/g, '-')}`,
-        key: walletKey,
+        id: `wallet-${nom.toLowerCase().replace(/\s/g, '-')}`,
+        key: clauWallet,
       },
       logger: new ConsoleLogger(LogLevel.info),
-      // Solo se declaran endpoints si hay transporte (servidor)
+      // només posam endpoints si tenim transport (és a dir, si som un servidor)
       ...(transport ? { endpoints: transport.endpoints } : {}),
     }
 
-    const credentialProtocol: IndustrialCredentialProtocol = new V2CredentialProtocol({
+    const protocolCredencial: ProtocolCredencial = new V2CredentialProtocol({
       credentialFormats: [
         new LegacyIndyCredentialFormatService(),
         new AnonCredsCredentialFormatService(),
       ],
     })
 
-    const proofProtocol: IndustrialProofProtocol = new V2ProofProtocol({
+    const protocolProva: ProtocolProva = new V2ProofProtocol({
       proofFormats: [
         new LegacyIndyProofFormatService(),
         new AnonCredsProofFormatService(),
       ],
     })
 
-    const agent = new Agent<IndustrialAgentModules>({
+    const agent = new Agent<ModulsAgent>({
       config,
       dependencies: agentDependencies,
       modules: {
-        // --- Infraestructura cripto ---
+        // --- cripto base ---
         askar: new AskarModule({ ariesAskar }),
 
         anoncreds: new AnonCredsModule({
@@ -122,26 +139,30 @@ export class AgentFactory {
           resolvers: [new IndyVdrIndyDidResolver()],
         }),
 
-        // --- Protocolos DIDComm ---
+        // --- protocols DIDComm ---
         connections: new ConnectionsModule({
+          // acceptam connexions automàticament, no cal aprovar-les manualment
           autoAcceptConnections: true,
         }),
 
         credentials: new CredentialsModule({
+          // el wallet de l'operari decideix si accepta, el servidor no bloqueja
           autoAcceptCredentials: AutoAcceptCredential.ContentApproved,
-          credentialProtocols: [credentialProtocol],
+          credentialProtocols: [protocolCredencial],
         }),
 
         proofs: new ProofsModule({
+          // igual que les credencials — BC Wallet mostra confirmació a l'usuari
           autoAcceptProofs: AutoAcceptProof.ContentApproved,
-          proofProtocols: [proofProtocol],
+          proofProtocols: [protocolProva],
         }),
       },
     })
 
-    // --- Registrar transportes ---
+    // transport de sortida sempre
     agent.registerOutboundTransport(new HttpOutboundTransport())
 
+    // transport d'entrada només si som un servidor (emissor o verificador)
     if (transport) {
       agent.registerInboundTransport(
         new HttpInboundTransport({ port: transport.port })

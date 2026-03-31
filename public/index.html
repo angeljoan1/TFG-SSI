@@ -1,15 +1,13 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="ca">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Oficina Técnica — Emisión de Órdenes de Trabajo</title>
+    <title>Oficina Tècnica — Emissió d'Ordres de Treball</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet" />
     <style>
         :root {
             --bg: #f4f5f7;
@@ -34,13 +32,7 @@
             --ease: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             min-height: 100vh;
@@ -48,16 +40,10 @@
             color: var(--text);
             font-family: var(--sans);
             font-size: 15px;
-            background-image: none;
         }
 
-        .shell {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 24px 80px;
-        }
+        .shell { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
 
-        /* Header */
         header {
             border-bottom: 1px solid var(--border);
             padding-bottom: 24px;
@@ -79,27 +65,10 @@
             font-weight: 600;
         }
 
-        header h1 {
-            font-family: var(--sans);
-            font-weight: 700;
-            font-size: clamp(22px, 4vw, 32px);
-            color: var(--text);
-            line-height: 1.1;
-        }
+        header h1 { font-family: var(--sans); font-weight: 700; font-size: clamp(22px, 4vw, 32px); color: var(--text); line-height: 1.1; }
+        header h1 span { color: var(--accent); }
+        header p { margin-top: 6px; color: var(--text-dim); font-family: var(--mono); font-size: 13px; letter-spacing: .05em; }
 
-        header h1 span {
-            color: var(--accent);
-        }
-
-        header p {
-            margin-top: 6px;
-            color: var(--text-dim);
-            font-family: var(--mono);
-            font-size: 13px;
-            letter-spacing: .05em;
-        }
-
-        /* Section label */
         .slabel {
             font-family: var(--mono);
             font-size: 11px;
@@ -111,34 +80,18 @@
             align-items: center;
             gap: 10px;
         }
+        .slabel::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-        .slabel::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        /* Card */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--r);
             padding: 24px;
             margin-bottom: 20px;
-            position: relative;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
+        .card.warn-card { border-left: 3px solid var(--warn); }
 
-        .card::before {
-            display: none;
-        }
-
-        .card.warn-card {
-            border-left: 3px solid var(--warn);
-        }
-
-        /* Alert banner */
         .alert-banner {
             display: none;
             align-items: center;
@@ -153,410 +106,84 @@
             color: var(--warn);
             animation: fadeIn .3s ease;
         }
+        .alert-banner.visible { display: flex; }
+        .alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
 
-        .alert-banner.visible {
-            display: flex;
-        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
 
-        .alert-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--warn);
-            flex-shrink: 0;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
+        .pending-list { display: flex; flex-direction: column; gap: 8px; }
+        .pending-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; }
+        .pending-connid { font-family: var(--mono); font-size: 12px; color: var(--text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pending-form { display: flex; gap: 8px; }
+        .pending-form input { background: var(--bg); border: 1px solid var(--border-hi); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 7px 12px; outline: none; width: 180px; transition: var(--ease); }
+        .pending-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+        .pending-form input::placeholder { color: var(--text-dim); }
 
-        @keyframes pulse {
+        .btn-sm { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 7px 14px; border-radius: var(--r); border: none; cursor: pointer; transition: var(--ease); white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: var(--bg); font-weight: 700; }
+        .btn-primary:hover { background: #15407a; }
+        .btn-primary:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
 
-            0%,
-            100% {
-                opacity: 1
-            }
+        #op-search { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 10px 14px; outline: none; transition: var(--ease); margin-bottom: 10px; }
+        #op-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        #op-search::placeholder { color: var(--text-dim); }
 
-            50% {
-                opacity: .3
-            }
-        }
+        #op-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+        .op-item { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; cursor: pointer; transition: var(--ease); }
+        .op-item:hover { border-color: var(--accent-dim); background: var(--accent-glow); }
+        .op-item.selected { border-color: var(--accent); background: var(--accent-glow); }
+        .op-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+        .op-name { font-family: var(--sans); font-weight: 600; font-size: 14px; flex: 1; }
+        .op-connid { font-family: var(--mono); font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+        .op-check { color: var(--accent); opacity: 0; transition: opacity 150ms; font-size: 16px; }
+        .op-item.selected .op-check { opacity: 1; }
+        .op-empty { font-family: var(--mono); font-size: 13px; color: var(--text-dim); padding: 10px 0; }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-6px)
-            }
+        .selected-display { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; font-family: var(--mono); font-size: 13px; color: var(--text-dim); margin-bottom: 20px; min-height: 42px; display: flex; align-items: center; gap: 10px; }
+        .selected-display.active { border-color: var(--accent-dim); color: var(--accent); }
+        .sd-name { color: var(--text); font-weight: 600; font-family: var(--sans); }
 
-            to {
-                opacity: 1;
-                transform: none
-            }
-        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .fg { display: flex; flex-direction: column; gap: 6px; }
+        .fg.full { grid-column: 1 / -1; }
 
-        /* Pending list */
-        .pending-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        label { font-family: var(--mono); font-size: 11px; letter-spacing: .15em; color: var(--text-mid); text-transform: uppercase; }
 
-        .pending-item {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            align-items: center;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 10px 14px;
-        }
+        input[type=text], input[type=date] { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 10px 14px; outline: none; transition: var(--ease); width: 100%; }
+        input[type=text]:focus, input[type=date]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        input::placeholder { color: var(--text-dim); }
 
-        .pending-connid {
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--text-mid);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        /* checkboxes de riscos i certificacions */
+        .check-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+        .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: var(--ease); user-select: none; }
+        .check-item:hover { border-color: var(--accent-dim); }
+        .check-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+        .check-item.disabled-item { opacity: 0.45; cursor: not-allowed; }
+        .check-item.disabled-item input { cursor: not-allowed; }
+        .check-label { font-family: var(--mono); font-size: 13px; color: var(--text); flex: 1; }
+        .check-badge { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
+        .check-badge.active { background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent-dim); }
+        .check-badge.pending { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
 
-        .pending-form {
-            display: flex;
-            gap: 8px;
-        }
+        #btn-emetre { margin-top: 24px; width: 100%; padding: 13px 24px; font-family: var(--sans); font-weight: 700; font-size: 16px; color: #fff; background: var(--accent); border: none; border-radius: var(--r); cursor: pointer; transition: background var(--ease), box-shadow var(--ease); }
+        #btn-emetre:hover { background: #15407a; box-shadow: 0 2px 8px rgba(26,79,138,.3); }
+        #btn-emetre:active { transform: scale(.99); }
+        #btn-emetre:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
 
-        .pending-form input {
-            background: var(--bg);
-            border: 1px solid var(--border-hi);
-            border-radius: var(--r);
-            color: var(--text);
-            font-family: var(--mono);
-            font-size: 13px;
-            padding: 7px 12px;
-            outline: none;
-            width: 180px;
-            transition: var(--ease);
-        }
+        #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(130%); min-width: 300px; max-width: 90vw; padding: 14px 20px; border-radius: var(--r); font-family: var(--mono); font-size: 13px; display: flex; align-items: center; gap: 10px; transition: transform 350ms cubic-bezier(.34,1.56,.64,1); z-index: 999; pointer-events: none; }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.ok { background: #f0faf5; border: 1px solid #1a7a4a; color: #1a7a4a; }
+        #toast.err { background: #fdf2f2; border: 1px solid #c0392b; color: #c0392b; }
 
-        .pending-form input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
-        }
+        #log { margin-top: 28px; font-family: var(--mono); font-size: 12px; color: var(--text-dim); max-height: 120px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 3px; }
+        .le .ts { color: var(--accent-dim); margin-right: 8px; }
+        .le.ok .msg { color: var(--ok); }
+        .le.err .msg { color: var(--warn); }
 
-        .pending-form input::placeholder {
-            color: var(--text-dim);
-        }
-
-        .btn-sm {
-            font-family: var(--mono);
-            font-size: 12px;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            padding: 7px 14px;
-            border-radius: var(--r);
-            border: none;
-            cursor: pointer;
-            transition: var(--ease);
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: var(--bg);
-            font-weight: 700;
-        }
-
-        .btn-primary:hover {
-            background: #00eeff;
-            box-shadow: 0 0 16px rgba(0, 212, 255, .4);
-        }
-
-        .btn-primary:disabled {
-            background: var(--border);
-            color: var(--text-dim);
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        /* Operario selector */
-        #op-search {
-            width: 100%;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            color: var(--text);
-            font-family: var(--mono);
-            font-size: 14px;
-            padding: 10px 14px;
-            outline: none;
-            transition: var(--ease);
-            margin-bottom: 10px;
-        }
-
-        #op-search:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-
-        #op-search::placeholder {
-            color: var(--text-dim);
-        }
-
-        #op-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-
-        .op-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 10px 14px;
-            cursor: pointer;
-            transition: var(--ease);
-        }
-
-        .op-item:hover {
-            border-color: var(--accent-dim);
-            background: var(--accent-glow);
-        }
-
-        .op-item.selected {
-            border-color: var(--accent);
-            background: var(--accent-glow);
-        }
-
-        .op-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--ok);
-            box-shadow: 0 0 6px var(--ok);
-            flex-shrink: 0;
-        }
-
-        .op-name {
-            font-family: var(--sans);
-            font-weight: 600;
-            font-size: 14px;
-            flex: 1;
-        }
-
-        .op-connid {
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--text-dim);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 200px;
-        }
-
-        .op-check {
-            color: var(--accent);
-            opacity: 0;
-            transition: opacity 150ms;
-            font-size: 16px;
-        }
-
-        .op-item.selected .op-check {
-            opacity: 1;
-        }
-
-        .op-empty {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--text-dim);
-            padding: 10px 0;
-        }
-
-        /* Selected display */
-        .selected-display {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 10px 14px;
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--text-dim);
-            margin-bottom: 20px;
-            min-height: 42px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .selected-display.active {
-            border-color: var(--accent-dim);
-            color: var(--accent);
-        }
-
-        .sd-name {
-            color: #fff;
-            font-weight: 600;
-            font-family: var(--sans);
-        }
-
-        /* Form */
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .fg {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .fg.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: .15em;
-            color: var(--text-mid);
-            text-transform: uppercase;
-        }
-
-        input[type=text],
-        input[type=date] {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            color: var(--text);
-            font-family: var(--mono);
-            font-size: 14px;
-            padding: 10px 14px;
-            outline: none;
-            transition: var(--ease);
-            width: 100%;
-        }
-
-        input[type=text]:focus,
-        input[type=date]:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-
-        input::placeholder {
-            color: var(--text-dim);
-        }
-
-        /* Emit button */
-        #btn-emitir {
-            margin-top: 24px;
-            width: 100%;
-            padding: 13px 24px;
-            font-family: var(--sans);
-            font-weight: 700;
-            font-size: 16px;
-            letter-spacing: .03em;
-            text-transform: none;
-            color: #fff;
-            background: var(--accent);
-            border: none;
-            border-radius: var(--r);
-            cursor: pointer;
-            transition: background var(--ease), box-shadow var(--ease);
-        }
-
-        #btn-emitir:hover {
-            background: #15407a;
-            box-shadow: 0 2px 8px rgba(26, 79, 138, .3);
-        }
-
-        #btn-emitir:active {
-            transform: scale(.99);
-        }
-
-        #btn-emitir:disabled {
-            background: var(--border);
-            color: var(--text-dim);
-            cursor: not-allowed;
-        }
-
-        /* Toast */
-        #toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            transform: translateX(-50%) translateY(130%);
-            min-width: 300px;
-            max-width: 90vw;
-            padding: 14px 20px;
-            border-radius: var(--r);
-            font-family: var(--mono);
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: transform 350ms cubic-bezier(.34, 1.56, .64, 1);
-            z-index: 999;
-            pointer-events: none;
-        }
-
-        #toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        #toast.ok {
-            background: #f0faf5;
-            border: 1px solid #1a7a4a;
-            color: #1a7a4a;
-        }
-
-        #toast.err {
-            background: #fdf2f2;
-            border: 1px solid #c0392b;
-            color: #c0392b;
-        }
-
-        /* Log */
-        #log {
-            margin-top: 28px;
-            font-family: var(--mono);
-            font-size: 12px;
-            color: var(--text-dim);
-            max-height: 120px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 3px;
-        }
-
-        .le .ts {
-            color: var(--accent-dim);
-            margin-right: 8px;
-        }
-
-        .le.ok .msg {
-            color: var(--ok);
-        }
-
-        .le.err .msg {
-            color: var(--warn);
-        }
-
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--surface);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-hi);
-            border-radius: 2px;
-        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--surface); }
+        ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
     </style>
 </head>
 
@@ -565,60 +192,105 @@
 
         <header>
             <div class="badge">Sistema SSI Industrial · TFG</div>
-            <h1>Oficina <span>Técnica</span></h1>
-            <p>// Emisión de Órdenes de Trabajo · Protocolo AnonCreds v2.0</p>
+            <h1>Oficina <span>Tècnica</span></h1>
+            <p>// Emissió d'Ordres de Treball · Protocol AnonCreds v2.0</p>
         </header>
 
-        <!-- Alerta pendientes -->
-        <div class="alert-banner" id="alert-pending">
+        <!-- alerta connexions noves -->
+        <div class="alert-banner" id="alert-pendent">
             <div class="alert-dot"></div>
-            <span id="alert-text">Nueva conexión pendiente de registro</span>
+            <span id="alert-text">Nova connexió pendent de registre</span>
         </div>
 
-        <!-- 01: Nuevas conexiones pendientes -->
-        <div id="section-pending" style="display:none">
-            <div class="slabel">01 · Nuevos operarios — pendientes de registro</div>
+        <!-- 01: connexions noves sense nom -->
+        <div id="seccio-pendents" style="display:none">
+            <div class="slabel">01 · Nous operaris — pendents de registre</div>
             <div class="card warn-card">
-                <div class="pending-list" id="pending-list"></div>
+                <div class="pending-list" id="llista-pendents"></div>
             </div>
         </div>
 
-        <!-- 02: Selección de operario -->
-        <div class="slabel">02 · Seleccionar operario</div>
+        <!-- 02: selecció d'operari -->
+        <div class="slabel">02 · Seleccionar operari</div>
         <div class="card">
-            <input type="text" id="op-search" placeholder="Buscar por nombre…" autocomplete="off" />
-            <div id="op-list"><span class="op-empty">Cargando directorio…</span></div>
+            <input type="text" id="op-search" placeholder="Cercar per nom…" autocomplete="off" />
+            <div id="op-list"><span class="op-empty">Carregant directori…</span></div>
         </div>
 
-        <!-- 03: Datos OT -->
-        <div class="slabel">03 · Datos de la Orden de Trabajo</div>
+        <!-- 03: dades de la OT -->
+        <div class="slabel">03 · Dades de l'Ordre de Treball</div>
         <div class="card">
             <div class="selected-display" id="selected-display">
-                <span>Operario:</span>
-                <span>— ninguno seleccionado —</span>
+                <span>Operari:</span>
+                <span>— cap seleccionat —</span>
             </div>
             <div class="form-grid">
                 <div class="fg full">
-                    <label>Equipo / Activo industrial</label>
-                    <input type="text" id="equipo" placeholder="ej. Turbina-T4-Sector7" />
+                    <label>Equip / Actiu industrial</label>
+                    <input type="text" id="equip" placeholder="ex. Turbina-T4-Sector7" />
                 </div>
                 <div class="fg full">
-                    <label>Tarea asignada</label>
-                    <input type="text" id="tarea" placeholder="ej. Mantenimiento preventivo trimestral" />
+                    <label>Tasca assignada</label>
+                    <input type="text" id="tasca" placeholder="ex. Manteniment preventiu trimestral" />
                 </div>
                 <div class="fg">
-                    <label>Fecha de la orden</label>
-                    <input type="date" id="fecha" />
+                    <label>Data de l'ordre</label>
+                    <input type="date" id="data" />
                 </div>
                 <div class="fg" style="justify-content:flex-end">
                     <label style="visibility:hidden">·</label>
                     <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);padding-bottom:4px">
-                        ID generado automáticamente<br>
+                        ID generat automàticament<br>
                         <span style="color:var(--accent-dim)" id="preview-id">ORD-···</span>
                     </div>
                 </div>
+
+                <!-- riscos requerits -->
+                <div class="fg full">
+                    <label>Riscos de la tasca</label>
+                    <div class="check-group">
+                        <label class="check-item" id="item-atex">
+                            <input type="checkbox" id="risc-atex" value="ATEX" />
+                            <span class="check-label">Zones explosives (ATEX)</span>
+                            <span class="check-badge active">Funcional</span>
+                        </label>
+                        <label class="check-item disabled-item">
+                            <input type="checkbox" disabled />
+                            <span class="check-label">Treballs en alçada</span>
+                            <span class="check-badge pending">Pròximament</span>
+                        </label>
+                        <label class="check-item disabled-item">
+                            <input type="checkbox" disabled />
+                            <span class="check-label">Espais confinats</span>
+                            <span class="check-badge pending">Pròximament</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- certificacions requerides -->
+                <div class="fg full">
+                    <label>Certificacions requerides</label>
+                    <div class="check-group">
+                        <label class="check-item" id="item-soldador">
+                            <input type="checkbox" id="cert-soldador" value="soldador" />
+                            <span class="check-label">Homologació Soldador</span>
+                            <span class="check-badge active">Funcional</span>
+                        </label>
+                        <label class="check-item disabled-item">
+                            <input type="checkbox" disabled />
+                            <span class="check-label">Carnet de pont grua</span>
+                            <span class="check-badge pending">Pròximament</span>
+                        </label>
+                        <label class="check-item disabled-item">
+                            <input type="checkbox" disabled />
+                            <span class="check-label">Manipulació de productes químics</span>
+                            <span class="check-badge pending">Pròximament</span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
-            <button id="btn-emitir" disabled>Emitir Orden de Trabajo →</button>
+            <button id="btn-emetre" disabled>Emetre Ordre de Treball →</button>
         </div>
 
         <div id="log"></div>
@@ -627,137 +299,137 @@
     <div id="toast"><span id="ti"></span><span id="tm"></span></div>
 
     <script>
-        let selectedOp = null
-        let allOperarios = []
+        let operariSeleccionat = null
+        let totsElsOperaris = []
 
-        const ts = () => new Date().toLocaleTimeString('es-ES', { hour12: false })
+        const ara = () => new Date().toLocaleTimeString('ca-ES', { hour12: false })
 
-        function addLog(msg, type = '') {
+        function afegirLog(msg, tipus = '') {
             const el = document.createElement('div')
-            el.className = `le ${type}`
-            el.innerHTML = `<span class="ts">[${ts()}]</span><span class="msg">${msg}</span>`
+            el.className = `le ${tipus}`
+            el.innerHTML = `<span class="ts">[${ara()}]</span><span class="msg">${msg}</span>`
             document.getElementById('log').prepend(el)
         }
 
-        let toastTimer
-        function toast(msg, type = 'ok') {
+        let timerToast
+        function toast(msg, tipus = 'ok') {
             document.getElementById('tm').textContent = msg
-            document.getElementById('ti').textContent = type === 'ok' ? '✔' : '✖'
+            document.getElementById('ti').textContent = tipus === 'ok' ? '✔' : '✖'
             const el = document.getElementById('toast')
-            el.className = `show ${type}`
-            clearTimeout(toastTimer)
-            toastTimer = setTimeout(() => el.className = type, 3500)
+            el.className = `show ${tipus}`
+            clearTimeout(timerToast)
+            timerToast = setTimeout(() => el.className = tipus, 3500)
         }
 
-        function checkEmitButton() {
-            const ok = selectedOp &&
-                document.getElementById('equipo').value.trim() &&
-                document.getElementById('tarea').value.trim() &&
-                document.getElementById('fecha').value
-            document.getElementById('btn-emitir').disabled = !ok
+        function comprovarBoto() {
+            const ok = operariSeleccionat &&
+                document.getElementById('equip').value.trim() &&
+                document.getElementById('tasca').value.trim() &&
+                document.getElementById('data').value
+            document.getElementById('btn-emetre').disabled = !ok
         }
 
-        function renderOperarios(list) {
+        function renderOperaris(llista) {
             const container = document.getElementById('op-list')
-            if (!list.length) {
-                container.innerHTML = '<span class="op-empty">Sin operarios registrados. Escanea el QR OOB primero.</span>'
+            if (!llista.length) {
+                container.innerHTML = '<span class="op-empty">Sense operaris registrats. Escaneja el QR OOB primer.</span>'
                 return
             }
             container.innerHTML = ''
-            list.forEach(op => {
+            llista.forEach(op => {
                 const item = document.createElement('div')
-                item.className = 'op-item' + (selectedOp?.connectionId === op.connectionId ? ' selected' : '')
+                item.className = 'op-item' + (operariSeleccionat?.connectionId === op.connectionId ? ' selected' : '')
                 item.innerHTML = `
-        <div class="op-dot"></div>
-        <span class="op-name">${op.nombre}</span>
-        <span class="op-connid">${op.connectionId}</span>
-        <span class="op-check">✓</span>
-      `
-                item.addEventListener('click', () => selectOp(op))
+                    <div class="op-dot"></div>
+                    <span class="op-name">${op.nom}</span>
+                    <span class="op-connid">${op.connectionId}</span>
+                    <span class="op-check">✓</span>
+                `
+                item.addEventListener('click', () => seleccionarOp(op))
                 container.appendChild(item)
             })
         }
 
-        function selectOp(op) {
-            selectedOp = op
+        function seleccionarOp(op) {
+            operariSeleccionat = op
             document.querySelectorAll('.op-item').forEach(el => {
                 el.classList.toggle('selected', el.querySelector('.op-connid').textContent === op.connectionId)
             })
             const disp = document.getElementById('selected-display')
             disp.className = 'selected-display active'
-            disp.innerHTML = `<span>Operario:</span><span class="sd-name">${op.nombre}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-left:auto">${op.connectionId.slice(0, 8)}…</span>`
-            checkEmitButton()
-            addLog(`Operario seleccionado: ${op.nombre}`)
+            disp.innerHTML = `<span>Operari:</span><span class="sd-name">${op.nom}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-left:auto">${op.connectionId.slice(0, 8)}…</span>`
+            comprovarBoto()
+            afegirLog(`Operari seleccionat: ${op.nom}`)
         }
 
-        async function loadOperarios() {
+        async function carregarOperaris() {
             try {
-                const r = await fetch('/api/operarios')
-                allOperarios = await r.json()
+                const r = await fetch('/api/operaris')
+                totsElsOperaris = await r.json()
                 const q = document.getElementById('op-search').value.trim().toLowerCase()
-                renderOperarios(q ? allOperarios.filter(o => o.nombre.toLowerCase().includes(q)) : allOperarios)
-            } catch { }
+                renderOperaris(q ? totsElsOperaris.filter(o => o.nom.toLowerCase().includes(q)) : totsElsOperaris)
+            } catch {}
         }
 
         document.getElementById('op-search').addEventListener('input', e => {
             const q = e.target.value.trim().toLowerCase()
-            renderOperarios(q ? allOperarios.filter(o => o.nombre.toLowerCase().includes(q)) : allOperarios)
+            renderOperaris(q ? totsElsOperaris.filter(o => o.nom.toLowerCase().includes(q)) : totsElsOperaris)
         })
 
-        async function loadPending() {
+        async function carregarPendents() {
             try {
-                const r = await fetch('/api/pendientes')
+                const r = await fetch('/api/pendents')
                 const ids = await r.json()
-                const alertEl = document.getElementById('alert-pending')
-                const sectionEl = document.getElementById('section-pending')
+                const alertEl = document.getElementById('alert-pendent')
+                const seccioEl = document.getElementById('seccio-pendents')
 
                 if (!ids.length) {
                     alertEl.classList.remove('visible')
-                    sectionEl.style.display = 'none'
+                    seccioEl.style.display = 'none'
                     return
                 }
 
                 alertEl.classList.add('visible')
                 document.getElementById('alert-text').textContent =
-                    ids.length === 1 ? '1 nueva conexión pendiente de registro' : `${ids.length} nuevas conexiones pendientes de registro`
-                sectionEl.style.display = 'block'
+                    ids.length === 1 ? '1 nova connexió pendent de registre' : `${ids.length} noves connexions pendents de registre`
+                seccioEl.style.display = 'block'
 
-                const list = document.getElementById('pending-list')
-                list.innerHTML = ''
+                const llista = document.getElementById('llista-pendents')
+                llista.innerHTML = ''
                 ids.forEach(connId => {
                     const item = document.createElement('div')
                     item.className = 'pending-item'
                     item.innerHTML = `
-          <span class="pending-connid" title="${connId}">${connId}</span>
-          <div class="pending-form">
-            <input type="text" placeholder="Nombre del operario" />
-            <button class="btn-sm btn-primary" disabled>Registrar</button>
-          </div>
-        `
+                        <span class="pending-connid" title="${connId}">${connId}</span>
+                        <div class="pending-form">
+                            <input type="text" placeholder="Nom de l'operari" />
+                            <button class="btn-sm btn-primary" disabled>Registrar</button>
+                        </div>
+                    `
                     const input = item.querySelector('input')
                     const btn = item.querySelector('button')
                     input.addEventListener('input', () => { btn.disabled = !input.value.trim() })
-                    btn.addEventListener('click', () => registrarOperario(connId, input.value.trim(), item))
-                    list.appendChild(item)
+                    btn.addEventListener('click', () => registrarOperari(connId, input.value.trim(), item))
+                    llista.appendChild(item)
                 })
-            } catch { }
+            } catch {}
         }
 
-        async function registrarOperario(connectionId, nombre, itemEl) {
+        async function registrarOperari(connectionId, nom, itemEl) {
             const btn = itemEl.querySelector('button')
             btn.disabled = true
-            btn.textContent = 'Guardando…'
+            btn.textContent = 'Guardant…'
             try {
-                const r = await fetch('/api/operarios', {
+                const r = await fetch('/api/operaris', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ connectionId, nombre }),
+                    body: JSON.stringify({ connectionId, nom }),
                 })
                 const data = await r.json()
                 if (!r.ok) throw new Error(data.error)
-                toast(`Operario "${nombre}" registrado ✓`, 'ok')
-                addLog(`Registrado: ${nombre} → ${connectionId.slice(0, 8)}…`, 'ok')
-                await Promise.all([loadPending(), loadOperarios()])
+                toast(`Operari "${nom}" registrat ✓`, 'ok')
+                afegirLog(`Registrat: ${nom} → ${connectionId.slice(0, 8)}…`, 'ok')
+                await Promise.all([carregarPendents(), carregarOperaris()])
             } catch (err) {
                 toast(`Error: ${err.message}`, 'err')
                 btn.disabled = false
@@ -765,43 +437,56 @@
             }
         }
 
-        document.getElementById('btn-emitir').addEventListener('click', async () => {
-            const equipo = document.getElementById('equipo').value.trim()
-            const tarea = document.getElementById('tarea').value.trim()
-            const fecha = document.getElementById('fecha').value
-            const btn = document.getElementById('btn-emitir')
+        document.getElementById('btn-emetre').addEventListener('click', async () => {
+            const equip  = document.getElementById('equip').value.trim()
+            const tasca  = document.getElementById('tasca').value.trim()
+            const data   = document.getElementById('data').value
+            const btn    = document.getElementById('btn-emetre')
+
+            // recollir riscos i certificacions marcats (només els funcionals)
+            const riscos = document.getElementById('risc-atex').checked ? 'ATEX' : ''
+            const certificacions = document.getElementById('cert-soldador').checked ? 'soldador' : ''
+
             btn.disabled = true
-            btn.textContent = 'Emitiendo…'
-            addLog(`Emitiendo OT → ${selectedOp.nombre} | ${equipo}`)
+            btn.textContent = 'Emetent…'
+            afegirLog(`Emetent OT → ${operariSeleccionat.nom} | ${equip} | riscos: ${riscos || 'cap'} | certs: ${certificacions || 'cap'}`)
+
             try {
-                const r = await fetch('/api/emitir', {
+                const r = await fetch('/api/emetre', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ connectionId: selectedOp.connectionId, equipo, tarea, fecha }),
+                    body: JSON.stringify({
+                        connectionId: operariSeleccionat.connectionId,
+                        equip,
+                        tasca,
+                        data,
+                        riscos,
+                        certificacions,
+                    }),
                 })
-                const data = await r.json()
-                if (!r.ok) throw new Error(data.error)
-                toast(`OT enviada al wallet de ${selectedOp.nombre} ✓`, 'ok')
-                addLog(`OT emitida: ${data.id_orden}`, 'ok')
+                const resposta = await r.json()
+                if (!r.ok) throw new Error(resposta.error)
+                toast(`OT enviada al wallet de ${operariSeleccionat.nom} ✓`, 'ok')
+                afegirLog(`OT emesa: ${resposta.id_ordre}`, 'ok')
             } catch (err) {
                 toast(`Error: ${err.message}`, 'err')
-                addLog(`Error: ${err.message}`, 'err')
+                afegirLog(`Error: ${err.message}`, 'err')
             } finally {
                 btn.disabled = false
-                btn.textContent = 'Emitir Orden de Trabajo →'
-                checkEmitButton()
+                btn.textContent = 'Emetre Ordre de Treball →'
+                comprovarBoto()
             }
         })
 
-        // Init
-        document.getElementById('fecha').value = new Date().toISOString().split('T')[0]
+        // inicialització
+        document.getElementById('data').value = new Date().toISOString().split('T')[0]
         document.getElementById('preview-id').textContent = `ORD-${Date.now()}`
-            ;['equipo', 'tarea', 'fecha'].forEach(id =>
-                document.getElementById(id).addEventListener('input', checkEmitButton)
-            )
-        loadOperarios()
-        loadPending()
-        setInterval(() => { loadPending(); loadOperarios() }, 8000)
+        ;['equip', 'tasca', 'data'].forEach(id =>
+            document.getElementById(id).addEventListener('input', comprovarBoto)
+        )
+        carregarOperaris()
+        carregarPendents()
+        setInterval(() => { carregarPendents(); carregarOperaris() }, 8000)
     </script>
 </body>
 

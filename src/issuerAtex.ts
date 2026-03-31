@@ -1,7 +1,8 @@
-// ARCHIVO: src/issuerAtex.ts
-// Ejecutar: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuerAtex.ts
+// arxiu: src/issuerAtex.ts
+// emissor del certificat ATEX (zones explosives)
+// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuerAtex.ts
 
-import { AgentFactory, IndustrialAgent } from './config/AgentFactory'
+import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
 import {
   ConnectionEventTypes,
   ConnectionStateChangedEvent,
@@ -10,111 +11,120 @@ import {
   CredentialStateChangedEvent,
   CredentialState,
 } from '@credo-ts/core'
+import { DID_ATEX, CRED_DEF_ATEX, PORT_ATEX } from './configuracio'
 
-const NGROK_ENDPOINT = process.env.NGROK_ENDPOINT
-if (!NGROK_ENDPOINT) {
-  console.error(
-    'ERROR: Debes definir NGROK_ENDPOINT.\n' +
-    'Ejemplo: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuerAtex.ts'
-  )
+const endpointNgrok = process.env.NGROK_ENDPOINT
+if (!endpointNgrok) {
+  console.error('ERROR: cal definir NGROK_ENDPOINT')
+  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuerAtex.ts')
   process.exit(1)
 }
-const PORT = Number(process.env.PORT) || 3003
 
-// ─── Rellena con el output de setupAtex.ts ───
-const PUBLIC_DID_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B'
-const CRED_DEF_ID_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B/anoncreds/v0/CLAIM_DEF/3152041/default'
+// data d'expiració en unix timestamp (segons)
+// el verificador farà un predicat >= avui per comprovar-ho criptogràficament
+// 2026-12-31 en epoch
+const DATA_EXPIRACIO_ATEX = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
+
+// imprimeix el QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
+async function imprimirQR(url: string): Promise<void> {
+  try {
+    const qr = await import('qrcode-terminal')
+    qr.default.generate(url, { small: true })
+  } catch {
+    console.log('[qr no disponible — escaneja la URL directament]')
+  }
+  console.log(`\n📲 URL d'invitació:\n${url}\n`)
+}
 
 const main = async () => {
   console.log('================================================================')
-  console.log('  EMISOR ATEX — Directiva de Zonas Explosivas')
+  console.log('  EMISSOR ATEX — Directiva de Zones Explosives')
   console.log('================================================================\n')
 
-  console.log(`--> [1/3] Levantando agente ATEX en puerto ${PORT}...`)
-  console.log(`          Endpoint público: ${NGROK_ENDPOINT}\n`)
+  console.log(`--> [1/3] Arrencant agent ATEX al port ${PORT_ATEX}...`)
+  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
 
-  const issuerAtex: IndustrialAgent = await AgentFactory.create(
+  const emissorAtex: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-ATEX-V1',
     'clave-maestra-ATEX-V1',
-    { port: PORT, endpoints: [NGROK_ENDPOINT] }
+    { port: PORT_ATEX, endpoints: [endpointNgrok] }
   )
-  await issuerAtex.initialize()
-  console.log('[OK] Agente ATEX inicializado.\n')
+  await emissorAtex.initialize()
+  console.log('[ok] Agent ATEX inicialitzat.\n')
 
-  console.log('--> [2/3] Verificando CredDef ATEX en el ledger...')
-  const credDefResult = await issuerAtex.modules.anoncreds.getCredentialDefinition(CRED_DEF_ID_ATEX)
-  if (!credDefResult.credentialDefinition) {
-    console.error(`[ERROR FATAL] CredDef no encontrada: ${CRED_DEF_ID_ATEX}`)
-    console.error('              Ejecuta setupAtex.ts primero.')
+  console.log('--> [2/3] Comprovant CredDef ATEX al ledger...')
+  const resultatCredDef = await emissorAtex.modules.anoncreds.getCredentialDefinition(CRED_DEF_ATEX)
+  if (!resultatCredDef.credentialDefinition) {
+    console.error(`[ERROR FATAL] CredDef no trobada: ${CRED_DEF_ATEX}`)
+    console.error('             Executa setupAtex.ts primer.')
     process.exit(1)
   }
-  console.log(`[OK] CredDef ATEX verificada.\n`)
+  console.log('[ok] CredDef ATEX verificada.\n')
 
-  // ─── Emisión automática al completar conexión ───
-  issuerAtex.events.on<ConnectionStateChangedEvent>(
+  // quan l'operari es connecta, li enviam el certificat ATEX automàticament
+  emissorAtex.events.on<ConnectionStateChangedEvent>(
     ConnectionEventTypes.ConnectionStateChanged,
     async ({ payload }) => {
       if (payload.connectionRecord.state === DidExchangeState.Completed) {
-        const connId = payload.connectionRecord.id
-        console.log(`\n[CONEXIÓN ESTABLECIDA] ID: ${connId}`)
-        console.log('  Emitiendo Certificado ATEX al operario...\n')
+        const idConnexio = payload.connectionRecord.id
+        console.log(`\n[connexió] ID: ${idConnexio}`)
+        console.log('  enviant certificat ATEX...\n')
 
         try {
-          await issuerAtex.credentials.offerCredential({
-            connectionId: connId,
+          await emissorAtex.credentials.offerCredential({
+            connectionId: idConnexio,
             protocolVersion: 'v2',
             credentialFormats: {
               anoncreds: {
-                credentialDefinitionId: CRED_DEF_ID_ATEX,
+                credentialDefinitionId: CRED_DEF_ATEX,
                 attributes: [
-                  { name: 'id_cert',          value: `ATEX-${Date.now()}` },
-                  { name: 'trabajador',        value: 'Operario-Demo' },
-                  { name: 'zona',              value: 'Zona-1-Gas' },
-                  { name: 'nivel_atex',        value: 'II 2G Ex ia IIC T4' },
-                  { name: 'fecha_expiracion',  value: '2026-12-31' },
+                  { name: 'id_cert',         value: `ATEX-${Date.now()}` },
+                  { name: 'treballador',      value: 'Operari-Demo' },
+                  { name: 'zona',             value: 'Zona-1-Gas' },
+                  { name: 'nivell_atex',      value: 'II 2G Ex ia IIC T4' },
+                  // epoch en string — el verificador fa predicat >= avui
+                  { name: 'data_expiracio',   value: DATA_EXPIRACIO_ATEX },
                 ],
               },
             },
           })
-          console.log('[OK] Oferta ATEX enviada. Esperando aceptación...')
+          console.log('[ok] Oferta ATEX enviada. Esperant acceptació...')
         } catch (error) {
-          console.error('[ERROR] Al emitir credencial ATEX:', error)
+          console.error('[error] en emetre credencial ATEX:', error)
         }
       }
     }
   )
 
-  issuerAtex.events.on<CredentialStateChangedEvent>(
+  emissorAtex.events.on<CredentialStateChangedEvent>(
     CredentialEventTypes.CredentialStateChanged,
     async ({ payload }) => {
-      const state = payload.credentialRecord.state
-      console.log(`  [CRED ATEX] Transición -> ${state}`)
-      if (state === CredentialState.Done) {
+      const estat = payload.credentialRecord.state
+      console.log(`  [cred atex] -> ${estat}`)
+      if (estat === CredentialState.Done) {
         console.log('\n================================================')
-        console.log('  ¡CERTIFICADO ATEX EMITIDO Y ACEPTADO!')
+        console.log('  CERTIFICAT ATEX EMÈS I ACCEPTAT!')
         console.log('================================================\n')
       }
     }
   )
 
-  console.log('--> [3/3] Generando invitación OOB ATEX...\n')
-  const oobRecord = await issuerAtex.oob.createInvitation({
-    label: 'Directiva ATEX: Recibe tu Certificado de Zona Explosiva',
+  console.log('--> [3/3] Generant invitació OOB ATEX...\n')
+  const oob = await emissorAtex.oob.createInvitation({
+    label: 'Directiva ATEX: Rep el teu Certificat de Zona Explosiva',
     multiUseInvitation: true,
   })
 
-  const invitationUrl = oobRecord.outOfBandInvitation.toUrl({ domain: NGROK_ENDPOINT })
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  await imprimirQR(urlInvitacio)
 
-  console.log('================================================================')
-  console.log('  INVITACIÓN OOB ATEX — Escanea con BC Wallet')
-  console.log('================================================================')
-  console.log(`\n${invitationUrl}\n`)
+  console.log('--> Servidor ATEX escoltant. Ctrl+C per aturar.\n')
 
-  // @ts-ignore — qrcode-terminal es CommonJS
-  const qrcode = require('qrcode-terminal')
-  qrcode.generate(invitationUrl, { small: true })
-
-  console.log('\n--> Servidor ATEX escuchando. Ctrl+C para detener.\n')
+  process.on('SIGINT', async () => {
+    console.log('\n--> tancant agent ATEX...')
+    await emissorAtex.shutdown()
+    process.exit(0)
+  })
 }
 
 main().catch((error) => {

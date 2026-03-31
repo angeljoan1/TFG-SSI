@@ -1,8 +1,8 @@
-// ARCHIVO: src/issuer.ts
-// Servidor emisor SSI — Genera invitación OOB y emite credenciales
-// de Orden de Mantenimiento a la BC Wallet del operario.
+// arxiu: src/issuer.ts
+// emissor de les Ordres de Treball (OT) — corre al portàtil A
+// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuer.ts
 
-import { AgentFactory, IndustrialAgent } from './config/AgentFactory'
+import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
 import {
   ConnectionEventTypes,
   ConnectionStateChangedEvent,
@@ -14,244 +14,217 @@ import {
 import express, { Request, Response } from 'express'
 import path from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { CRED_DEF_OT, PORT_OT } from './configuracio'
 
-
-
-// ─── Configuración inyectada por entorno ───
-const NGROK_ENDPOINT = process.env.NGROK_ENDPOINT
-if (!NGROK_ENDPOINT) {
-  console.error(
-    'ERROR: Debes definir NGROK_ENDPOINT.\n' +
-    'Ejemplo: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuer.ts'
-  )
+const endpointNgrok = process.env.NGROK_ENDPOINT
+if (!endpointNgrok) {
+  console.error('ERROR: cal definir NGROK_ENDPOINT')
+  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuer.ts')
   process.exit(1)
 }
-const PORT = Number(process.env.PORT) || 3001
 
-// ─── IDs de la infraestructura registrada en BCovrin ───
-// Estos valores salen del output de setup.ts
-const PUBLIC_DID = 'did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM'
-const CRED_DEF_ID = `${PUBLIC_DID}/anoncreds/v0/CLAIM_DEF/3149116/default`
+// fitxer on guardam els operaris registrats (connectionId <-> nom)
+const FITXER_OPERARIS = path.join(process.cwd(), 'operaris.json')
 
-const OPERARIOS_FILE = path.join(process.cwd(), 'operarios.json')
-
-interface Operario {
-  nombre: string
+interface Operari {
+  nom: string
   connectionId: string
-  registradoEn: string
+  registratEn: string
 }
 
-function leerOperarios(): Operario[] {
-  if (!existsSync(OPERARIOS_FILE)) return []
-  return JSON.parse(readFileSync(OPERARIOS_FILE, 'utf-8'))
+function llegirOperaris(): Operari[] {
+  if (!existsSync(FITXER_OPERARIS)) return []
+  return JSON.parse(readFileSync(FITXER_OPERARIS, 'utf-8'))
 }
 
-function guardarOperarios(lista: Operario[]): void {
-  writeFileSync(OPERARIOS_FILE, JSON.stringify(lista, null, 2), 'utf-8')
+function guardarOperaris(llista: Operari[]): void {
+  writeFileSync(FITXER_OPERARIS, JSON.stringify(llista, null, 2), 'utf-8')
+}
+
+// imprimeix QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
+async function imprimirQR(url: string): Promise<void> {
+  try {
+    const qr = await import('qrcode-terminal')
+    qr.default.generate(url, { small: true })
+  } catch {
+    console.log('[qr no disponible — escaneja la URL directament]')
+  }
+  console.log(`\n📲 URL d'invitació:\n${url}\n`)
 }
 
 const main = async () => {
   console.log('================================================================')
-  console.log('  EMISOR SSI - Servidor de Órdenes de Mantenimiento')
+  console.log('  EMISSOR OT — Servidor d\'Ordres de Treball')
   console.log('================================================================\n')
 
-  // ─── 1. Levantar agente emisor con transporte HTTP ───
-  console.log(`--> [1/3] Levantando agente emisor en puerto ${PORT}...`)
-  console.log(`          Endpoint público: ${NGROK_ENDPOINT}\n`)
+  // ─── 1. Arrencar agent emissor ────────────────────────────────────────────
+  console.log(`--> [1/3] Arrencant agent emissor al port ${PORT_OT}...`)
+  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
 
-  const issuer: IndustrialAgent = await AgentFactory.create(
+  const emissor: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Autonomo-V13',
     'clave-maestra-V13',
-    { port: PORT, endpoints: [NGROK_ENDPOINT] }
+    { port: PORT_OT, endpoints: [endpointNgrok] }
   )
-  await issuer.initialize()
-  console.log('[OK] Agente emisor inicializado y escuchando.\n')
+  await emissor.initialize()
+  console.log('[ok] Agent emissor inicialitzat i escoltant.\n')
 
-  // ─── 2. Verificar que la CredDef existe en el ledger ───
-  console.log(`--> [2/3] Verificando CredDef en el ledger...`)
-  const credDefResult = await issuer.modules.anoncreds.getCredentialDefinition(CRED_DEF_ID)
-  if (!credDefResult.credentialDefinition) {
-    console.error(`[ERROR FATAL] CredDef no encontrada: ${CRED_DEF_ID}`)
-    console.error('              Ejecuta setup.ts primero y verifica el ID.')
+  // ─── 2. Comprovar que la CredDef existeix al ledger ───────────────────────
+  console.log('--> [2/3] Comprovant CredDef al ledger...')
+  const resultatCredDef = await emissor.modules.anoncreds.getCredentialDefinition(CRED_DEF_OT)
+  if (!resultatCredDef.credentialDefinition) {
+    console.error(`[ERROR FATAL] CredDef no trobada: ${CRED_DEF_OT}`)
+    console.error('             Executa setup.ts primer.')
     process.exit(1)
   }
-  console.log(`[OK] CredDef verificada: ${CRED_DEF_ID}\n`)
+  console.log(`[ok] CredDef verificada: ${CRED_DEF_OT}\n`)
 
-  // ─── 3. Registrar event listeners ───
- 
-  // Mapa en memoria: connectionId → estado
-  const pendientes = new Set<string>()
-  const connections: Map<string, { id: string; state: string; connectedAt: string }> = new Map()
- 
-issuer.events.on<ConnectionStateChangedEvent>(
-  ConnectionEventTypes.ConnectionStateChanged,
-  async ({ payload }) => {
-    const record = payload.connectionRecord
-    if (record.state === DidExchangeState.Completed) {
-      console.log(`\n[CONEXIÓN ESTABLECIDA] ID: ${record.id}`)
-      // Solo registrar si no está ya en el directorio
-      const lista = leerOperarios()
-      const yaExiste = lista.some((o) => o.connectionId === record.id)
-      if (!yaExiste) {
-        pendientes.add(record.id)
-        console.log('  → Conexión nueva. Pendiente de nombrar en el formulario web.')
-      } else {
-        console.log('  → Operario ya registrado.')
+  // ─── 3. Listeners d'events ────────────────────────────────────────────────
+
+  // connexions noves sense nom assignat encara
+  const pendents = new Set<string>()
+
+  emissor.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      const registre = payload.connectionRecord
+      if (registre.state === DidExchangeState.Completed) {
+        console.log(`\n[connexió] ID: ${registre.id}`)
+        const llista = llegirOperaris()
+        const jaExisteix = llista.some((o) => o.connectionId === registre.id)
+        if (!jaExisteix) {
+          pendents.add(registre.id)
+          console.log('  → connexió nova, pendent de posar nom al formulari web')
+        } else {
+          console.log('  → operari ja registrat')
+        }
       }
     }
-  }
-)
- 
-  // Seguimiento del ciclo de vida de la credencial
-  issuer.events.on<CredentialStateChangedEvent>(
+  )
+
+  emissor.events.on<CredentialStateChangedEvent>(
     CredentialEventTypes.CredentialStateChanged,
     async ({ payload }) => {
-      const state = payload.credentialRecord.state
-      console.log(`  [CRED] Transición de estado -> ${state}`)
- 
-      if (state === CredentialState.Done) {
+      const estat = payload.credentialRecord.state
+      console.log(`  [cred] -> ${estat}`)
+      if (estat === CredentialState.Done) {
         console.log('\n================================================')
-        console.log('  ¡CREDENCIAL EMITIDA Y ACEPTADA POR EL OPERARIO!')
+        console.log('  CREDENCIAL EMESA I ACCEPTADA PER L\'OPERARI!')
         console.log('================================================\n')
       }
     }
   )
- 
-  // ─── 4. Servidor Express (formulario web + API REST) ───────────────────────
+
+  // ─── 4. Servidor Express (formulari web + API REST) ───────────────────────
   const app = express()
   app.use(express.json())
   app.use(express.static(path.join(__dirname, '..', 'public')))
- 
-  // GET /api/connections — lista de conexiones activas (estado Completed)
-// GET /api/operarios — directorio completo
-app.get('/api/operarios', (_req: Request, res: Response) => {
-  res.json(leerOperarios())
-})
 
-// GET /api/pendientes — conexiones nuevas sin nombrar
-app.get('/api/pendientes', (_req: Request, res: Response) => {
-  res.json([...pendientes])
-})
+  // llista completa d'operaris registrats
+  app.get('/api/operaris', (_req: Request, res: Response) => {
+    res.json(llegirOperaris())
+  })
 
-// POST /api/operarios — asignar nombre a una conexión pendiente
-app.post('/api/operarios', (req: Request, res: Response) => {
-  const { connectionId, nombre } = req.body as { connectionId: string; nombre: string }
-  if (!connectionId || !nombre) {
-    res.status(400).json({ error: 'Faltan campos: connectionId, nombre' })
-    return
-  }
-  const lista = leerOperarios()
-  if (lista.some((o) => o.connectionId === connectionId)) {
-    res.status(409).json({ error: 'Este connectionId ya está registrado' })
-    return
-  }
-  lista.push({ nombre, connectionId, registradoEn: new Date().toISOString() })
-  guardarOperarios(lista)
-  pendientes.delete(connectionId)
-  console.log(`[DIRECTORIO] Operario registrado: ${nombre} → ${connectionId}`)
-  res.json({ ok: true })
-})
+  // connexions noves sense nom assignat
+  app.get('/api/pendents', (_req: Request, res: Response) => {
+    res.json([...pendents])
+  })
 
-// POST /api/emitir — emite OT a un operario del directorio
-app.post('/api/emitir', async (req: Request, res: Response) => {
-  const { connectionId, equipo, tarea, fecha } = req.body as {
-    connectionId: string; equipo: string; tarea: string; fecha: string
-  }
-  if (!connectionId || !equipo || !tarea || !fecha) {
-    res.status(400).json({ error: 'Faltan campos: connectionId, equipo, tarea, fecha' })
-    return
-  }
-  const lista = leerOperarios()
-  if (!lista.some((o) => o.connectionId === connectionId)) {
-    res.status(404).json({ error: 'Operario no encontrado en el directorio' })
-    return
-  }
-  try {
-    const idOrden = `ORD-${Date.now()}`
-    await issuer.credentials.offerCredential({
-      connectionId,
-      protocolVersion: 'v2',
-      credentialFormats: {
-        anoncreds: {
-          credentialDefinitionId: CRED_DEF_ID,
-          attributes: [
-            { name: 'id_orden', value: idOrden },
-            { name: 'equipo',   value: equipo },
-            { name: 'tarea',    value: tarea },
-            { name: 'fecha',    value: fecha },
-          ],
-        },
-      },
-    })
-    console.log(`[API] OT emitida → ${connectionId} | ${idOrden}`)
-    res.json({ ok: true, id_orden: idOrden })
-  } catch (error) {
-    console.error('[API ERROR]', error)
-    res.status(500).json({ error: 'Error al emitir la credencial' })
-  }
-
- 
-    if (!connectionId || !equipo || !tarea || !fecha) {
-      res.status(400).json({ error: 'Faltan campos: connectionId, equipo, tarea, fecha' })
+  // assignar nom a una connexió pendent
+  app.post('/api/operaris', (req: Request, res: Response) => {
+    const { connectionId, nom } = req.body as { connectionId: string; nom: string }
+    if (!connectionId || !nom) {
+      res.status(400).json({ error: 'falten camps: connectionId, nom' })
       return
     }
- 
-    if (!connections.has(connectionId)) {
-      res.status(404).json({ error: 'connectionId no encontrado. El operario debe conectarse primero.' })
+    const llista = llegirOperaris()
+    if (llista.some((o) => o.connectionId === connectionId)) {
+      res.status(409).json({ error: 'aquest connectionId ja està registrat' })
       return
     }
- 
+    llista.push({ nom, connectionId, registratEn: new Date().toISOString() })
+    guardarOperaris(llista)
+    pendents.delete(connectionId)
+    console.log(`[directori] operari registrat: ${nom} → ${connectionId}`)
+    res.json({ ok: true })
+  })
+
+  // emetre OT a un operari del directori
+  // rep: connectionId, equip, tasca, data, riscos (string), certificacions (string)
+  // riscos i certificacions vénen dels checkboxes del formulari serialitzats amb comes
+  app.post('/api/emetre', async (req: Request, res: Response) => {
+    const { connectionId, equip, tasca, data, riscos, certificacions } = req.body as {
+      connectionId: string
+      equip: string
+      tasca: string
+      data: string
+      riscos: string
+      certificacions: string
+    }
+
+    if (!connectionId || !equip || !tasca || !data) {
+      res.status(400).json({ error: 'falten camps obligatoris: connectionId, equip, tasca, data' })
+      return
+    }
+
+    const llista = llegirOperaris()
+    if (!llista.some((o) => o.connectionId === connectionId)) {
+      res.status(404).json({ error: 'operari no trobat al directori' })
+      return
+    }
+
     try {
-      await issuer.credentials.offerCredential({
+      const idOrdre = `ORD-${Date.now()}`
+      await emissor.credentials.offerCredential({
         connectionId,
         protocolVersion: 'v2',
         credentialFormats: {
           anoncreds: {
-            credentialDefinitionId: CRED_DEF_ID,
+            credentialDefinitionId: CRED_DEF_OT,
             attributes: [
-              { name: 'id_orden', value: `ORD-${Date.now()}` },
-              { name: 'equipo',   value: equipo },
-              { name: 'tarea',    value: tarea },
-              { name: 'fecha',    value: fecha },
+              { name: 'id_ordre',        value: idOrdre },
+              { name: 'equip',           value: equip },
+              { name: 'tasca',           value: tasca },
+              { name: 'data',            value: data },
+              // si no s'han marcat riscos o certificacions, guardam string buit
+              { name: 'riscos',          value: riscos ?? '' },
+              { name: 'certificacions',  value: certificacions ?? '' },
             ],
           },
         },
       })
-      console.log(`\n[API] Orden emitida → connectionId: ${connectionId}`)
-      res.json({ ok: true, id_orden: `ORD-${Date.now()}` })
+      console.log(`[api] OT emesa → ${connectionId} | ${idOrdre} | riscos: ${riscos} | certs: ${certificacions}`)
+      res.json({ ok: true, id_ordre: idOrdre })
     } catch (error) {
-      console.error('[API ERROR]', error)
-      res.status(500).json({ error: 'Error al emitir la credencial' })
+      console.error('[api error]', error)
+      res.status(500).json({ error: 'error en emetre la credencial' })
     }
   })
- 
-  const WEB_PORT = PORT + 100 // 3101 para no colisionar con el inbound DIDComm
-  app.listen(WEB_PORT, () => {
-    console.log(`[WEB] Formulario disponible en http://localhost:${WEB_PORT}\n`)
+
+  // el port web és el de DIDComm + 100 per no col·lisionar
+  const PORT_WEB = PORT_OT + 100
+  app.listen(PORT_WEB, () => {
+    console.log(`[web] Formulari disponible a http://localhost:${PORT_WEB}\n`)
   })
- 
-  // ─── 5. Generar invitación Out-Of-Band (igual que antes) ───────────────────
-  console.log(`--> [3/3] Generando invitación OOB...\n`)
- 
-  const oobRecord = await issuer.oob.createInvitation({
-    label: 'Emisor Industrial: Recibe tu Orden de Trabajo',
+
+  // ─── 5. Generar invitació OOB ─────────────────────────────────────────────
+  console.log('--> [3/3] Generant invitació OOB...\n')
+
+  const oob = await emissor.oob.createInvitation({
+    label: 'Emissor Industrial: Rep la teva Ordre de Treball',
     multiUseInvitation: true,
   })
- 
-  const invitationUrl = oobRecord.outOfBandInvitation.toUrl({
-    domain: NGROK_ENDPOINT,
+
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  await imprimirQR(urlInvitacio)
+
+  console.log('--> Servidor emissor escoltant. Ctrl+C per aturar.\n')
+
+  process.on('SIGINT', async () => {
+    console.log('\n--> tancant agent emissor...')
+    await emissor.shutdown()
+    process.exit(0)
   })
- 
-  console.log('================================================================')
-  console.log('  INVITACIÓN OOB — Escanea con BC Wallet (primera conexión)')
-  console.log('================================================================')
-  console.log(`\n${invitationUrl}\n`)
- 
-  // @ts-ignore — qrcode-terminal es CommonJS, require está disponible en tsx
-  const qrcode = require('qrcode-terminal')
-  qrcode.generate(invitationUrl, { small: true })
- 
-  console.log('\n--> Servidor emisor escuchando. Ctrl+C para detener.\n')
 }
 
 main().catch((error) => {

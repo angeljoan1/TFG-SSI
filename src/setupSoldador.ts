@@ -1,133 +1,128 @@
-// ARCHIVO: src/setupSoldador.ts
-import { AgentFactory } from './config/AgentFactory'
-import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
+// arxiu: src/setupSoldador.ts
+// emet l'homologació de soldador a la teva wallet personal (una vegada i prou)
+// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/setupSoldador.ts
+// un cop tens la credencial al BC Wallet no cal tornar-lo a executar
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
+import {
+  ConnectionEventTypes,
+  ConnectionStateChangedEvent,
+  DidExchangeState,
+  CredentialEventTypes,
+  CredentialStateChangedEvent,
+  CredentialState,
+} from '@credo-ts/core'
+import { CRED_DEF_SOLDADOR, PORT_SOLDADOR } from './configuracio'
+
+const endpointNgrok = process.env.NGROK_ENDPOINT
+if (!endpointNgrok) {
+  console.error('ERROR: cal definir NGROK_ENDPOINT')
+  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/setupSoldador.ts')
+  process.exit(1)
+}
+
+async function imprimirQR(url: string): Promise<void> {
+  try {
+    const qr = await import('qrcode-terminal')
+    qr.default.generate(url, { small: true })
+  } catch {
+    console.log('[qr no disponible — escaneja la URL directament]')
+  }
+  console.log(`\n📲 URL d'invitació:\n${url}\n`)
+}
 
 const main = async () => {
   console.log('================================================================')
-  console.log('--> SETUP SOLDADOR V1 (Escuela de Soldadores — Infraestructura Independiente)')
+  console.log('  SETUP SOLDADOR — Emissió de l\'homologació a la wallet personal')
   console.log('================================================================\n')
 
-  const nodoSoldador = await AgentFactory.create('Servidor-Soldador-V1', 'clave-maestra-Soldador-V1')
+  console.log(`--> [1/3] Arrencant agent Soldador al port ${PORT_SOLDADOR}...`)
+  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
 
-  try {
-    await nodoSoldador.initialize()
-    let publicDid = ''
-    let rawDid = ''
+  const agentSoldador: AgentIndustrial = await FabricaAgents.crear(
+    'Servidor-Soldador-V1',
+    'clave-maestra-Soldador-V1',
+    { port: PORT_SOLDADOR, endpoints: [endpointNgrok] }
+  )
+  await agentSoldador.initialize()
+  console.log('[ok] Agent Soldador inicialitzat.\n')
 
-    console.log('--> [1/4] Inicializando identidad Soldador...')
-    const didsGuardados = await nodoSoldador.dids.getCreatedDids({ method: 'indy' })
-
-    if (didsGuardados.length > 0) {
-      publicDid = didsGuardados[0].did
-      rawDid = publicDid.split(':').pop()!
-      console.log(`[OK] Identidad recuperada: ${publicDid}`)
-    } else {
-      console.log('[INFO] Wallet virgen detectada. Generando nueva identidad Soldador...')
-
-      const timestamp = Date.now().toString()
-      const randomSeed = `TFG-SOLD-V1-${timestamp}`.padEnd(32, '0').substring(0, 32)
-      const seedBytes = TypedArrayEncoder.fromString(randomSeed)
-
-      const key = await nodoSoldador.wallet.createKey({ keyType: KeyType.Ed25519, seed: seedBytes as any })
-      rawDid = TypedArrayEncoder.toBase58(key.publicKey.slice(0, 16))
-      publicDid = `did:indy:bcovrin:test:${rawDid}`
-
-      console.log(`--> Nuevo DID Soldador generado: ${publicDid}`)
-      console.log('    ... Registrando como ENDORSER en BCovrin Faucet...')
-
-      const faucetResponse = await fetch('http://test.bcovrin.vonx.io/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'ENDORSER', alias: 'Servidor-Soldador-V1', did: rawDid, seed: randomSeed }),
-      })
-      if (!faucetResponse.ok) throw new Error('El Faucet denegó la identidad Soldador.')
-
-      console.log('    ... Esperando 5 segundos para propagación en la red...')
-      await sleep(5000)
-
-      await nodoSoldador.dids.import({
-        did: publicDid,
-        overwrite: true,
-        privateKeys: [{ privateKey: seedBytes, keyType: KeyType.Ed25519 }],
-      })
-      console.log('[OK] Identidad Soldador blindada en disco.')
-      console.log(`\n⚠️  GUARDA ESTA SEED EN .seed-backup-soldador: ${randomSeed}\n`)
-    }
-
-    console.log('\n--> [2/4] Registrando Esquema Soldador...')
-    const nombreEsquema = 'Homologacion-Soldador'
-    const versionEsquema = '1.0.0'
-    let schemaId = ''
-
-    try {
-      const schemaResult = await nodoSoldador.modules.anoncreds.registerSchema({
-        schema: {
-          attrNames: ['id_cert', 'trabajador', 'proceso', 'norma', 'fecha_expiracion'],
-          issuerId: publicDid,
-          name: nombreEsquema,
-          version: versionEsquema,
-        },
-        options: {},
-      })
-      if (schemaResult.schemaState.state === 'failed')
-        throw new Error(`Fallo de red real: ${schemaResult.schemaState.reason}`)
-      schemaId = schemaResult.schemaState.schemaId!
-      console.log(`[OK] Esquema Soldador subido. ID: ${schemaId}`)
-    } catch (e: any) {
-      if (e.message.includes('Fallo de red real')) throw e
-      schemaId = `${publicDid}/anoncreds/v0/SCHEMA/${nombreEsquema}/${versionEsquema}`
-      console.log(`[INFO] Esquema ya existía. Usando ID: ${schemaId}`)
-    }
-
-    console.log('\n--> [3/4] Esperando indexación del esquema en la red...')
-    let esquemaDisponible = false
-    let intentos = 0
-
-    while (!esquemaDisponible && intentos < 15) {
-      const lookup = await nodoSoldador.modules.anoncreds.getSchema(schemaId)
-      if (lookup.schema) {
-        console.log('[OK] Esquema localizado y validado en la red.')
-        esquemaDisponible = true
-      } else {
-        console.log(`    ... Esperando indexación (Intento ${intentos + 1}/15)`)
-        await sleep(4000)
-        intentos++
-      }
-    }
-    if (!esquemaDisponible) throw new Error('La red no indexó el esquema Soldador.')
-
-    console.log('\n--> [4/4] Registrando CredDef Soldador...')
-    const credDefResult = await nodoSoldador.modules.anoncreds.registerCredentialDefinition({
-      credentialDefinition: { issuerId: publicDid, schemaId, tag: 'default' },
-      options: { supportRevocation: false },
-    })
-
-    if (credDefResult.credentialDefinitionState.state === 'failed') {
-      const reason = credDefResult.credentialDefinitionState.reason || ''
-      if (reason.includes('already exists') || reason.includes('SeqNo')) {
-        console.log('[OK] CredDef Soldador ya estaba registrada.')
-      } else {
-        throw new Error(`CredDef falló: ${reason}`)
-      }
-    } else {
-      console.log('\n[OK] ¡CREDDEF SOLDADOR REGISTRADA CON ÉXITO!')
-      console.log('================================================')
-      console.log(`DID SOLDADOR: ${publicDid}`)
-      console.log(`SCHEMA ID:    ${schemaId}`)
-      console.log(`CREDDEF ID:   ${credDefResult.credentialDefinitionState.credentialDefinitionId}`)
-      console.log('================================================')
-      console.log('⚠️  Copia estos valores en ESTADO_TFG.MD ahora.')
-    }
-
-    await nodoSoldador.shutdown()
-    console.log('\n--> Setup Soldador completado. Apagado seguro.')
-    process.exit(0)
-  } catch (error) {
-    console.error('\n--> [ERROR FATAL]:', error)
+  console.log('--> [2/3] Comprovant CredDef Soldador al ledger...')
+  const resultatCredDef = await agentSoldador.modules.anoncreds.getCredentialDefinition(CRED_DEF_SOLDADOR)
+  if (!resultatCredDef.credentialDefinition) {
+    console.error(`[ERROR FATAL] CredDef no trobada: ${CRED_DEF_SOLDADOR}`)
+    console.error('             Comprova que la infraestructura Soldador està registrada a BCovrin.')
     process.exit(1)
   }
+  console.log('[ok] CredDef Soldador verificada.\n')
+
+  // quan escanegis el QR amb el BC Wallet, s'emet automàticament
+  agentSoldador.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      if (payload.connectionRecord.state === DidExchangeState.Completed) {
+        const idConnexio = payload.connectionRecord.id
+        console.log(`\n[connexió] ID: ${idConnexio}`)
+        console.log('  enviant homologació de soldador...\n')
+
+        try {
+          await agentSoldador.credentials.offerCredential({
+            connectionId: idConnexio,
+            protocolVersion: 'v2',
+            credentialFormats: {
+              anoncreds: {
+                credentialDefinitionId: CRED_DEF_SOLDADOR,
+                attributes: [
+                  { name: 'id_cert',          value: `SOLD-${Date.now()}` },
+                  { name: 'trabajador',        value: 'Operario-Demo' },
+                  { name: 'proceso',           value: 'SMAW' },
+                  { name: 'norma',             value: 'EN ISO 9606-1' },
+                  { name: 'fecha_expiracion',  value: '2031-12-31' },
+                ],
+              },
+            },
+          })
+          console.log('[ok] Oferta Soldador enviada. Accepta-la al BC Wallet...')
+        } catch (error) {
+          console.error('[error] en emetre credencial Soldador:', error)
+        }
+      }
+    }
+  )
+
+  agentSoldador.events.on<CredentialStateChangedEvent>(
+    CredentialEventTypes.CredentialStateChanged,
+    async ({ payload }) => {
+      const estat = payload.credentialRecord.state
+      console.log(`  [cred soldador] -> ${estat}`)
+      if (estat === CredentialState.Done) {
+        console.log('\n================================================')
+        console.log('  HOMOLOGACIÓ SOLDADOR EMESA I ACCEPTADA!')
+        console.log('  Ja pots aturar el servidor amb Ctrl+C')
+        console.log('================================================\n')
+      }
+    }
+  )
+
+  console.log('--> [3/3] Generant invitació OOB...\n')
+  const oob = await agentSoldador.oob.createInvitation({
+    label: 'Escola de Soldadors: Rep la teva Homologació',
+    multiUseInvitation: true,
+  })
+
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  await imprimirQR(urlInvitacio)
+
+  console.log('--> Escaneja el QR amb BC Wallet. Ctrl+C per aturar.\n')
+
+  process.on('SIGINT', async () => {
+    console.log('\n--> tancant agent Soldador...')
+    await agentSoldador.shutdown()
+    process.exit(0)
+  })
 }
 
-main()
+main().catch((error) => {
+  console.error('\n[ERROR FATAL]:', error)
+  process.exit(1)
+})

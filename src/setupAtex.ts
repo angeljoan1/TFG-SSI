@@ -1,133 +1,128 @@
-// ARCHIVO: src/setupAtex.ts
-import { AgentFactory } from './config/AgentFactory'
-import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
+// arxiu: src/setupAtex.ts
+// emet el certificat ATEX a la teva wallet personal (una vegada i prou)
+// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/setupAtex.ts
+// un cop tens la credencial al BC Wallet no cal tornar-lo a executar
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
+import {
+  ConnectionEventTypes,
+  ConnectionStateChangedEvent,
+  DidExchangeState,
+  CredentialEventTypes,
+  CredentialStateChangedEvent,
+  CredentialState,
+} from '@credo-ts/core'
+import { CRED_DEF_ATEX, PORT_ATEX } from './configuracio'
+
+const endpointNgrok = process.env.NGROK_ENDPOINT
+if (!endpointNgrok) {
+  console.error('ERROR: cal definir NGROK_ENDPOINT')
+  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/setupAtex.ts')
+  process.exit(1)
+}
+
+async function imprimirQR(url: string): Promise<void> {
+  try {
+    const qr = await import('qrcode-terminal')
+    qr.default.generate(url, { small: true })
+  } catch {
+    console.log('[qr no disponible — escaneja la URL directament]')
+  }
+  console.log(`\n📲 URL d'invitació:\n${url}\n`)
+}
 
 const main = async () => {
   console.log('================================================================')
-  console.log('--> SETUP ATEX V1 (Directiva ATEX — Infraestructura Independiente)')
+  console.log('  SETUP ATEX — Emissió del certificat a la wallet personal')
   console.log('================================================================\n')
 
-  const nodoAtex = await AgentFactory.create('Servidor-ATEX-V1', 'clave-maestra-ATEX-V1')
+  console.log(`--> [1/3] Arrencant agent ATEX al port ${PORT_ATEX}...`)
+  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
 
-  try {
-    await nodoAtex.initialize()
-    let publicDid = ''
-    let rawDid = ''
+  const agentAtex: AgentIndustrial = await FabricaAgents.crear(
+    'Servidor-ATEX-V1',
+    'clave-maestra-ATEX-V1',
+    { port: PORT_ATEX, endpoints: [endpointNgrok] }
+  )
+  await agentAtex.initialize()
+  console.log('[ok] Agent ATEX inicialitzat.\n')
 
-    console.log('--> [1/4] Inicializando identidad ATEX...')
-    const didsGuardados = await nodoAtex.dids.getCreatedDids({ method: 'indy' })
-
-    if (didsGuardados.length > 0) {
-      publicDid = didsGuardados[0].did
-      rawDid = publicDid.split(':').pop()!
-      console.log(`[OK] Identidad recuperada: ${publicDid}`)
-    } else {
-      console.log('[INFO] Wallet virgen detectada. Generando nueva identidad ATEX...')
-
-      const timestamp = Date.now().toString()
-      const randomSeed = `TFG-ATEX-V1-${timestamp}`.padEnd(32, '0').substring(0, 32)
-      const seedBytes = TypedArrayEncoder.fromString(randomSeed)
-
-      const key = await nodoAtex.wallet.createKey({ keyType: KeyType.Ed25519, seed: seedBytes as any })
-      rawDid = TypedArrayEncoder.toBase58(key.publicKey.slice(0, 16))
-      publicDid = `did:indy:bcovrin:test:${rawDid}`
-
-      console.log(`--> Nuevo DID ATEX generado: ${publicDid}`)
-      console.log('    ... Registrando como ENDORSER en BCovrin Faucet...')
-
-      const faucetResponse = await fetch('http://test.bcovrin.vonx.io/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'ENDORSER', alias: 'Servidor-ATEX-V1', did: rawDid, seed: randomSeed }),
-      })
-      if (!faucetResponse.ok) throw new Error('El Faucet denegó la identidad ATEX.')
-
-      console.log('    ... Esperando 5 segundos para propagación en la red...')
-      await sleep(5000)
-
-      await nodoAtex.dids.import({
-        did: publicDid,
-        overwrite: true,
-        privateKeys: [{ privateKey: seedBytes, keyType: KeyType.Ed25519 }],
-      })
-      console.log('[OK] Identidad ATEX blindada en disco.')
-      console.log(`\n⚠️  GUARDA ESTA SEED EN .seed-backup-atex: ${randomSeed}\n`)
-    }
-
-    console.log('\n--> [2/4] Registrando Esquema ATEX...')
-    const nombreEsquema = 'Certificado-ATEX'
-    const versionEsquema = '1.0.0'
-    let schemaId = ''
-
-    try {
-      const schemaResult = await nodoAtex.modules.anoncreds.registerSchema({
-        schema: {
-          attrNames: ['id_cert', 'trabajador', 'zona', 'nivel_atex', 'fecha_expiracion'],
-          issuerId: publicDid,
-          name: nombreEsquema,
-          version: versionEsquema,
-        },
-        options: {},
-      })
-      if (schemaResult.schemaState.state === 'failed')
-        throw new Error(`Fallo de red real: ${schemaResult.schemaState.reason}`)
-      schemaId = schemaResult.schemaState.schemaId!
-      console.log(`[OK] Esquema ATEX subido. ID: ${schemaId}`)
-    } catch (e: any) {
-      if (e.message.includes('Fallo de red real')) throw e
-      schemaId = `${publicDid}/anoncreds/v0/SCHEMA/${nombreEsquema}/${versionEsquema}`
-      console.log(`[INFO] Esquema ya existía. Usando ID: ${schemaId}`)
-    }
-
-    console.log('\n--> [3/4] Esperando indexación del esquema en la red...')
-    let esquemaDisponible = false
-    let intentos = 0
-
-    while (!esquemaDisponible && intentos < 15) {
-      const lookup = await nodoAtex.modules.anoncreds.getSchema(schemaId)
-      if (lookup.schema) {
-        console.log('[OK] Esquema localizado y validado en la red.')
-        esquemaDisponible = true
-      } else {
-        console.log(`    ... Esperando indexación (Intento ${intentos + 1}/15)`)
-        await sleep(4000)
-        intentos++
-      }
-    }
-    if (!esquemaDisponible) throw new Error('La red no indexó el esquema ATEX.')
-
-    console.log('\n--> [4/4] Registrando CredDef ATEX...')
-    const credDefResult = await nodoAtex.modules.anoncreds.registerCredentialDefinition({
-      credentialDefinition: { issuerId: publicDid, schemaId, tag: 'default' },
-      options: { supportRevocation: false },
-    })
-
-    if (credDefResult.credentialDefinitionState.state === 'failed') {
-      const reason = credDefResult.credentialDefinitionState.reason || ''
-      if (reason.includes('already exists') || reason.includes('SeqNo')) {
-        console.log('[OK] CredDef ATEX ya estaba registrada.')
-      } else {
-        throw new Error(`CredDef falló: ${reason}`)
-      }
-    } else {
-      console.log('\n[OK] ¡CREDDEF ATEX REGISTRADA CON ÉXITO!')
-      console.log('================================================')
-      console.log(`DID ATEX:    ${publicDid}`)
-      console.log(`SCHEMA ID:   ${schemaId}`)
-      console.log(`CREDDEF ID:  ${credDefResult.credentialDefinitionState.credentialDefinitionId}`)
-      console.log('================================================')
-      console.log('⚠️  Copia estos valores en ESTADO_TFG.MD ahora.')
-    }
-
-    await nodoAtex.shutdown()
-    console.log('\n--> Setup ATEX completado. Apagado seguro.')
-    process.exit(0)
-  } catch (error) {
-    console.error('\n--> [ERROR FATAL]:', error)
+  console.log('--> [2/3] Comprovant CredDef ATEX al ledger...')
+  const resultatCredDef = await agentAtex.modules.anoncreds.getCredentialDefinition(CRED_DEF_ATEX)
+  if (!resultatCredDef.credentialDefinition) {
+    console.error(`[ERROR FATAL] CredDef no trobada: ${CRED_DEF_ATEX}`)
+    console.error('             Comprova que la infraestructura ATEX està registrada a BCovrin.')
     process.exit(1)
   }
+  console.log('[ok] CredDef ATEX verificada.\n')
+
+  // quan escanegis el QR amb el BC Wallet, s'emet automàticament
+  agentAtex.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      if (payload.connectionRecord.state === DidExchangeState.Completed) {
+        const idConnexio = payload.connectionRecord.id
+        console.log(`\n[connexió] ID: ${idConnexio}`)
+        console.log('  enviant certificat ATEX...\n')
+
+        try {
+          await agentAtex.credentials.offerCredential({
+            connectionId: idConnexio,
+            protocolVersion: 'v2',
+            credentialFormats: {
+              anoncreds: {
+                credentialDefinitionId: CRED_DEF_ATEX,
+                attributes: [
+                  { name: 'id_cert',         value: `ATEX-${Date.now()}` },
+                  { name: 'trabajador',       value: 'Operario-Demo' },
+                  { name: 'zona',             value: 'Zona-1-Gas' },
+                  { name: 'nivel_atex',       value: 'II 2G Ex ia IIC T4' },
+                  { name: 'fecha_expiracion', value: '2031-12-31' },
+                ],
+              },
+            },
+          })
+          console.log('[ok] Oferta ATEX enviada. Accepta-la al BC Wallet...')
+        } catch (error) {
+          console.error('[error] en emetre credencial ATEX:', error)
+        }
+      }
+    }
+  )
+
+  agentAtex.events.on<CredentialStateChangedEvent>(
+    CredentialEventTypes.CredentialStateChanged,
+    async ({ payload }) => {
+      const estat = payload.credentialRecord.state
+      console.log(`  [cred atex] -> ${estat}`)
+      if (estat === CredentialState.Done) {
+        console.log('\n================================================')
+        console.log('  CERTIFICAT ATEX EMÈS I ACCEPTAT!')
+        console.log('  Ja pots aturar el servidor amb Ctrl+C')
+        console.log('================================================\n')
+      }
+    }
+  )
+
+  console.log('--> [3/3] Generant invitació OOB...\n')
+  const oob = await agentAtex.oob.createInvitation({
+    label: 'Directiva ATEX: Rep el teu Certificat de Zona Explosiva',
+    multiUseInvitation: true,
+  })
+
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  await imprimirQR(urlInvitacio)
+
+  console.log('--> Escaneja el QR amb BC Wallet. Ctrl+C per aturar.\n')
+
+  process.on('SIGINT', async () => {
+    console.log('\n--> tancant agent ATEX...')
+    await agentAtex.shutdown()
+    process.exit(0)
+  })
 }
 
-main()
+main().catch((error) => {
+  console.error('\n[ERROR FATAL]:', error)
+  process.exit(1)
+})
