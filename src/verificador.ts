@@ -321,11 +321,15 @@ const main = async () => {
           const revelats = Object.keys(attrs)
           if (estatRonda.attrsOT['grup_riscos']?.toLowerCase().includes('atex')) {
             if (!revelats.includes('grup_zona') || !revelats.includes('grup_nivell_atex'))
-              falten.push('Certificat ATEX')
+              falten.push('Certificat ATEX — credencial absent')
+            else
+              falten.push('Certificat ATEX — credencial caducada')
           }
           if (estatRonda.attrsOT['grup_certificacions']?.toLowerCase().includes('soldador')) {
             if (!revelats.includes('grup_proces') || !revelats.includes('grup_norma'))
-              falten.push('Homologació Soldador')
+              falten.push('Homologació Soldador — credencial absent')
+            else
+              falten.push('Homologació Soldador — credencial caducada')
           }
           ultimEsdeveniment = {
             ts: new Date().toISOString(),

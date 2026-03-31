@@ -23,7 +23,7 @@ if (!endpointNgrok) {
 // data d'expiració en unix timestamp (segons)
 // el verificador farà un predicat >= avui per comprovar-ho criptogràficament
 // 2026-12-31 en epoch
-const DATA_EXPIRACIO_ATEX = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
+const DATA_EXPIRACIO_ATEX = Math.floor(new Date('2024-12-31').getTime() / 1000).toString()
 
 // imprimeix el QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
 async function imprimirQR(url: string): Promise<void> {
