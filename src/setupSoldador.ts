@@ -28,7 +28,7 @@ if (!endpointNgrok) {
 const PORT_SOLDADOR = 3004
 
 // data d'expiració 2031 en epoch — canvia-la si vols un altre termini
-const DATA_EXPIRACIO = Math.floor(new Date('2031-12-31').getTime() / 1000).toString()
+const DATA_EXPIRACIO = Math.floor(new Date('2021-12-31').getTime() / 1000).toString()
 
 async function imprimirQR(url: string): Promise<void> {
   try {
@@ -122,7 +122,7 @@ const main = async () => {
       schemaId = resultatSchema.schemaState.schemaId!
       console.log(`[ok] Schema pujat. ID: ${schemaId}`)
     } catch (e: any) {
-      if (e.message.includes('error de xarxa real')) throw e
+      if (e.message.includes('error de xarxa real') && !e.message.includes('forbidden') && !e.message.includes('UnauthorizedClientRequest')) throw e
       schemaId = `${didPublic}/anoncreds/v0/SCHEMA/${nomSchema}/${versioSchema}`
       console.log(`[info] Schema ja existia. ID: ${schemaId}`)
     }

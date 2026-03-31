@@ -122,7 +122,7 @@ const main = async () => {
       schemaId = resultatSchema.schemaState.schemaId!
       console.log(`[ok] Schema pujat. ID: ${schemaId}`)
     } catch (e: any) {
-      if (e.message.includes('error de xarxa real')) throw e
+      if (e.message.includes('error de xarxa real') && !e.message.includes('forbidden') && !e.message.includes('UnauthorizedClientRequest')) throw e
       schemaId = `${didPublic}/anoncreds/v0/SCHEMA/${nomSchema}/${versioSchema}`
       console.log(`[info] Schema ja existia. ID: ${schemaId}`)
     }
