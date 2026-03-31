@@ -154,7 +154,7 @@ async function regenerarInvitacio(verificador: AgentIndustrial): Promise<void> {
     multiUseInvitation: true,
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
-  urlInvitacio = nouOob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  urlInvitacio = nouOob.outOfBandInvitation.toUrl({ domain: endpointNgrok! })
   console.log('[oob] nova invitació generada, llest per al següent operari')
 }
 
