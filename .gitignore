@@ -19,4 +19,7 @@ dist/
 *.d.ts
 
 # Variables de entorno
-.env
+.env.seed-backup-atex
+.seed-backup-soldador
+operarios.json
+operaris.json

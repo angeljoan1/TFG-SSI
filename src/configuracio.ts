@@ -14,9 +14,8 @@ export const DID_ATEX      = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B'
 export const CRED_DEF_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B/anoncreds/v0/CLAIM_DEF/3152670/default'
 
 // ─── Emissor Soldador (Escola d'homologació) ──────────────────────────────────
-export const DID_SOLDADOR      = 'did:indy:bcovrin:test:S8RcstynVLEB2ynGpbwYRJ'
-export const CRED_DEF_SOLDADOR = 'did:indy:bcovrin:test:S8RcstynVLEB2ynGpbwYRJ/anoncreds/v0/CLAIM_DEF/3152677/default'
-// ─── Ports ────────────────────────────────────────────────────────────────────
+export const DID_SOLDADOR      = 'did:indy:bcovrin:test:BHjxHoWTyspfzk4jeevS7w'
+export const CRED_DEF_SOLDADOR = 'did:indy:bcovrin:test:BHjxHoWTyspfzk4jeevS7w/anoncreds/v0/CLAIM_DEF/3152687/default'// ─── Ports ────────────────────────────────────────────────────────────────────
 export const PORT_OT       = 3001
 export const PORT_VERIFICADOR = 3002
 export const PORT_ATEX     = 3003

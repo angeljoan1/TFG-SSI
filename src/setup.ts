@@ -6,7 +6,6 @@
 import { FabricaAgents } from './config/FabricaAgents'
 import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
 import { writeFileSync } from 'fs'
-import { DID_OT } from './configuracio'
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
