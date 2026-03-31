@@ -11,7 +11,7 @@ export const SCHEMA_OT     = `${DID_OT}/anoncreds/v0/SCHEMA/Ordre-Manteniment/1.
 
 // ─── Emissor ATEX (Directiva zones explosives) ────────────────────────────────
 export const DID_ATEX      = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B'
-export const CRED_DEF_ATEX = `${DID_ATEX}/anoncreds/v0/CLAIM_DEF/3152041/default`
+export const CRED_DEF_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B/anoncreds/v0/CLAIM_DEF/3152670/default'
 
 // ─── Emissor Soldador (Escola d'homologació) ──────────────────────────────────
 export const DID_SOLDADOR      = 'did:indy:bcovrin:test:BE1hcUv3FSh31ihbfKTo6i'
