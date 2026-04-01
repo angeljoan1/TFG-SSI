@@ -23,7 +23,7 @@ if (!endpointNgrok) {
 
 // data d'expiració en unix timestamp (segons) — el verificador fa predicat >= avui
 // 2026-12-31 en epoch
-const DATA_EXPIRACIO_SOLDADOR = Math.floor(new Date('2006-12-31').getTime() / 1000).toString()
+const DATA_EXPIRACIO_SOLDADOR = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
 
 async function imprimirQR(url: string): Promise<void> {
   try {
