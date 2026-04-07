@@ -1,7 +1,7 @@
 // arxiu: src/verificador.ts
 // punt de control d'accés SSI — corre al portàtil B
-// executa: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/verificador.ts
-//
+// executa: npx tsx src/verificador.ts
+// 
 // flux de verificació en dues rondes:
 //   ronda 1 → demana només la OT (llegim riscos i certificacions)
 //   ronda 2 → demana les credencials addicionals que toquin segons la OT
@@ -19,19 +19,9 @@ import {
 } from '@credo-ts/core'
 import express, { Request, Response } from 'express'
 import path from 'path'
-import {
-  CRED_DEF_OT,
-  CRED_DEF_ATEX,
-  CRED_DEF_SOLDADOR,
-  PORT_VERIFICADOR,
-} from './configuracio'
 
-const endpointNgrok = process.env.NGROK_ENDPOINT
-if (!endpointNgrok) {
-  console.error('ERROR: cal definir NGROK_ENDPOINT')
-  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/verificador.ts')
-  process.exit(1)
-}
+import { CRED_DEF_OT, CRED_DEF_ATEX, CRED_DEF_SOLDADOR, PORT_VERIFICADOR, ENDPOINT_VERIFICADOR } from './configuracio'
+const endpointPublic = ENDPOINT_VERIFICADOR
 
 // epoch d'avui a mitjanit (en segons) — per comparar amb data_expiracio de les credencials
 function avuiEnEpoch(): number {
@@ -154,7 +144,7 @@ async function regenerarInvitacio(verificador: AgentIndustrial): Promise<void> {
     multiUseInvitation: true,
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
-  urlInvitacio = nouOob.outOfBandInvitation.toUrl({ domain: endpointNgrok! })
+  urlInvitacio = nouOob.outOfBandInvitation.toUrl({ domain: endpointPublic! })
   console.log('[oob] nova invitació generada, llest per al següent operari')
 }
 
@@ -178,11 +168,11 @@ const main = async () => {
   const verificador: AgentIndustrial = await FabricaAgents.crear(
     'Verificador-Acceso-V1',
     'clave-verificador-V1',
-    { port: PORT_VERIFICADOR, endpoints: [endpointNgrok] }
+    { port: PORT_VERIFICADOR, endpoints: [endpointPublic] }
   )
   await verificador.initialize()
   console.log(`[ok] Agent inicialitzat. Escoltant al port ${PORT_VERIFICADOR}.`)
-  console.log(`[ok] Endpoint públic: ${endpointNgrok}\n`)
+  console.log(`[ok] Endpoint públic: ${endpointPublic}\n`)
 
   // ── 2. Listener de proves — aquí és on passa tota la màgia ───────────────
   console.log('--> [2/4] Registrant listener de proves ZKP...')
@@ -380,7 +370,7 @@ const main = async () => {
     multiUseInvitation: true,
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
-  urlInvitacio = oobInicial.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  urlInvitacio = oobInicial.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
   // ── 5. Listener de connexions — quan l'operari escaneja el QR ────────────

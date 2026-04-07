@@ -20,3 +20,9 @@ export const PORT_OT       = 3001
 export const PORT_VERIFICADOR = 3002
 export const PORT_ATEX     = 3003
 export const PORT_SOLDADOR = 3004
+
+// ─── Endpoints públics (Cloudflare Tunnels) ───────────────────────────────────
+export const ENDPOINT_OT       = 'https://ot.angeljoan.com'
+export const ENDPOINT_VERIFICADOR = 'https://acces.angeljoan.com'
+export const ENDPOINT_ATEX     = 'https://atex.angeljoan.com'
+export const ENDPOINT_SOLDADOR = 'https://soldador.angeljoan.com'

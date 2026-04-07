@@ -1,6 +1,6 @@
 // arxiu: src/issuer.ts
 // emissor de les Ordres de Treball (OT) — corre al portàtil A
-// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuer.ts
+// executa: npx tsx src/issuer.ts
 
 import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
 import {
@@ -14,14 +14,9 @@ import {
 import express, { Request, Response } from 'express'
 import path from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { CRED_DEF_OT, PORT_OT } from './configuracio'
+import { CRED_DEF_OT, PORT_OT, ENDPOINT_OT } from './configuracio'
 
-const endpointNgrok = process.env.NGROK_ENDPOINT
-if (!endpointNgrok) {
-  console.error('ERROR: cal definir NGROK_ENDPOINT')
-  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuer.ts')
-  process.exit(1)
-}
+const endpointPublic = ENDPOINT_OT
 
 // fitxer on guardam els operaris registrats (connectionId <-> nom)
 const FITXER_OPERARIS = path.join(process.cwd(), 'operaris.json')
@@ -59,12 +54,11 @@ const main = async () => {
 
   // ─── 1. Arrencar agent emissor ────────────────────────────────────────────
   console.log(`--> [1/3] Arrencant agent emissor al port ${PORT_OT}...`)
-  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
-
+console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
   const emissor: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Autonomo-V13',
     'clave-maestra-V13',
-    { port: PORT_OT, endpoints: [endpointNgrok] }
+    { port: PORT_OT, endpoints: [endpointPublic] }
   )
   await emissor.initialize()
   console.log('[ok] Agent emissor inicialitzat i escoltant.\n')
@@ -215,7 +209,7 @@ const main = async () => {
     multiUseInvitation: true,
   })
 
-  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
   console.log('--> Servidor emissor escoltant. Ctrl+C per aturar.\n')

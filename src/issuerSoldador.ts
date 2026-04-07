@@ -1,6 +1,6 @@
 // arxiu: src/issuerSoldador.ts
 // emissor de l'homologació de soldador
-// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuerSoldador.ts
+// executa: npx tsx src/issuerSoldador.ts
 // normalment s'emet a casa abans de la demo — no cal tenir-lo encès a la defensa
 
 import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
@@ -12,18 +12,13 @@ import {
   CredentialStateChangedEvent,
   CredentialState,
 } from '@credo-ts/core'
-import { CRED_DEF_SOLDADOR, PORT_SOLDADOR } from './configuracio'
+import { CRED_DEF_SOLDADOR, PORT_SOLDADOR, ENDPOINT_SOLDADOR } from './configuracio'
 
-const endpointNgrok = process.env.NGROK_ENDPOINT
-if (!endpointNgrok) {
-  console.error('ERROR: cal definir NGROK_ENDPOINT')
-  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuerSoldador.ts')
-  process.exit(1)
-}
+const endpointPublic = ENDPOINT_SOLDADOR
 
 // data d'expiració en unix timestamp (segons) — el verificador fa predicat >= avui
 // 2026-12-31 en epoch
-const DATA_EXPIRACIO_SOLDADOR = Math.floor(new Date('2006-12-31').getTime() / 1000).toString()
+const DATA_EXPIRACIO_SOLDADOR = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
 
 async function imprimirQR(url: string): Promise<void> {
   try {
@@ -41,12 +36,12 @@ const main = async () => {
   console.log('================================================================\n')
 
   console.log(`--> [1/3] Arrencant agent Soldador al port ${PORT_SOLDADOR}...`)
-  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
+  console.log(`          Endpoint públic: ${endpointPublic}\n`)
 
   const emissorSoldador: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Soldador-V1',
     'clave-maestra-Soldador-V1',
-    { port: PORT_SOLDADOR, endpoints: [endpointNgrok] }
+    { port: PORT_SOLDADOR, endpoints: [endpointPublic] }
   )
   await emissorSoldador.initialize()
   console.log('[ok] Agent Soldador inicialitzat.\n')
@@ -114,7 +109,7 @@ const main = async () => {
     multiUseInvitation: true,
   })
 
-  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
   console.log('--> Servidor Soldador escoltant. Ctrl+C per aturar.\n')
