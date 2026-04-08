@@ -89,6 +89,8 @@ export class FabricaAgents {
       label: nom,
       walletConfig: {
         id: `wallet-${nom.toLowerCase().replace(/\s/g, '-')}`,
+        // en producció, passar la clau per variable d'entorn i no hardcoded al codi
+        // exemple: WALLET_KEY_OT, WALLET_KEY_VERIFICADOR, etc.
         key: clauWallet,
       },
       logger: new ConsoleLogger(LogLevel.info),

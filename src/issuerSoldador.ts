@@ -18,7 +18,8 @@ const endpointPublic = ENDPOINT_SOLDADOR
 
 // data d'expiració en unix timestamp (segons) — el verificador fa predicat >= avui
 // 2026-12-31 en epoch
-const DATA_EXPIRACIO_SOLDADOR = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
+// un any a partir d'avui — evita que la credencial caduqui si la demo es fa l'any que ve
+const DATA_EXPIRACIO_SOLDADOR = Math.floor((Date.now() + 365 * 24 * 3600 * 1000) / 1000).toString()
 
 async function imprimirQR(url: string): Promise<void> {
   try {
@@ -40,7 +41,7 @@ const main = async () => {
 
   const emissorSoldador: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Soldador-V1',
-    'clave-maestra-Soldador-V1',
+    process.env.WALLET_KEY_SOLDADOR ?? 'clave-maestra-Soldador-V1',
     { port: PORT_SOLDADOR, endpoints: [endpointPublic] }
   )
   await emissorSoldador.initialize()

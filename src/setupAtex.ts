@@ -5,7 +5,7 @@
 
 import { FabricaAgents } from './config/FabricaAgents'
 import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
-import { writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -31,14 +31,15 @@ const main = async () => {
     } else {
       console.log('[info] Servidor nou, generant identitat ATEX...')
 
-      const segell = Date.now().toString()
-      const llavor = `TFG-ATEX-V1-${segell}`.padEnd(32, '0').substring(0, 32)
+      const FITXER_SEED = '.seed-backup-atex'
+      const llavor = existsSync(FITXER_SEED)
+        ? (JSON.parse(readFileSync(FITXER_SEED, 'utf-8')) as { seed: string }).seed
+        : `TFG-ATEX-V1-${Date.now()}`.padEnd(32, '0').substring(0, 32)
 
-      writeFileSync('.seed-backup-atex', JSON.stringify({
-        seed: llavor,
-        timestamp: new Date().toISOString()
-      }, null, 2), 'utf-8')
-      console.log('    ... llavor guardada a .seed-backup-atex (no pujar a git!)')
+      if (!existsSync(FITXER_SEED)) {
+        writeFileSync(FITXER_SEED, JSON.stringify({ seed: llavor, timestamp: new Date().toISOString() }, null, 2), 'utf-8')
+        console.log('    ... llavor guardada a .seed-backup-atex (no pujar a git!)')
+      }
 
       const llavorBytes = TypedArrayEncoder.fromString(llavor)
       const clau = await agent.wallet.createKey({ keyType: KeyType.Ed25519, seed: llavorBytes as any })

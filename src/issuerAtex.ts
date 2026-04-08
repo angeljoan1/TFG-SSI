@@ -17,7 +17,8 @@ const endpointPublic = ENDPOINT_ATEX
 // data d'expiració en unix timestamp (segons)
 // el verificador farà un predicat >= avui per comprovar-ho criptogràficament
 // 2026-12-31 en epoch
-const DATA_EXPIRACIO_ATEX = Math.floor(new Date('2026-12-31').getTime() / 1000).toString()
+// un any a partir d'avui — evita que la credencial caduqui si la demo es fa l'any que ve
+const DATA_EXPIRACIO_ATEX = Math.floor((Date.now() + 365 * 24 * 3600 * 1000) / 1000).toString()
 
 // imprimeix el QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
 async function imprimirQR(url: string): Promise<void> {
@@ -40,7 +41,7 @@ const main = async () => {
 
   const emissorAtex: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-ATEX-V1',
-    'clave-maestra-ATEX-V1',
+    process.env.WALLET_KEY_ATEX ?? 'clave-maestra-ATEX-V1',
     { port: PORT_ATEX, endpoints: [endpointPublic] }
   )
   await emissorAtex.initialize()

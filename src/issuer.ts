@@ -77,7 +77,7 @@ const main = async () => {
   console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
   const emissor: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Autonomo-V13',
-    'clave-maestra-V13',
+    process.env.WALLET_KEY_OT ?? 'clave-maestra-V13',
     { port: PORT_OT, endpoints: [endpointPublic] }
   )
   await emissor.initialize()

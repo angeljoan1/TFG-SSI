@@ -5,9 +5,40 @@
 
 import { FabricaAgents } from './config/FabricaAgents'
 import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
-import { writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// ─── Seed determinista ────────────────────────────────────────────────────────
+// La seed ha de ser sempre la mateixa per al mateix agent:
+//   1. Si existeix .seed-backup, reutilitzam la seed guardada (cas normal)
+//   2. Si existeix la variable d'entorn AGENT_SEED, l'usam (CI/CD o entorn controlat)
+//   3. Si no hi ha res, generam una seed nova i la guardam (primer arrencament)
+// Això evita que cada execució de setup generi un DID diferent i perdi
+// el registre a BCovrin si el wallet es reinicia o es mou de màquina.
+function obtenirSeed(): string {
+  const FITXER_SEED = '.seed-backup'
+
+  if (existsSync(FITXER_SEED)) {
+    const { seed } = JSON.parse(readFileSync(FITXER_SEED, 'utf-8')) as { seed: string }
+    console.log('    ... seed recuperada de .seed-backup')
+    return seed
+  }
+
+  if (process.env.AGENT_SEED) {
+    const seed = process.env.AGENT_SEED.padEnd(32, '0').substring(0, 32)
+    console.log('    ... seed llegida de la variable d\'entorn AGENT_SEED')
+    writeFileSync(FITXER_SEED, JSON.stringify({ seed, timestamp: new Date().toISOString() }, null, 2), 'utf-8')
+    console.log('    ... seed guardada a .seed-backup (no pujar a git!)')
+    return seed
+  }
+
+  // primer arrencament: generam seed i la persistim
+  const seed = `TFG-Prod-V13-${Date.now()}`.padEnd(32, '0').substring(0, 32)
+  writeFileSync(FITXER_SEED, JSON.stringify({ seed, timestamp: new Date().toISOString() }, null, 2), 'utf-8')
+  console.log('    ... seed nova guardada a .seed-backup (no pujar a git!)')
+  return seed
+}
 
 const main = async () => {
   console.log('================================================================')
@@ -32,16 +63,7 @@ const main = async () => {
     } else {
       console.log('[info] Servidor nou, generant identitat...')
 
-      const segell = Date.now().toString()
-      const llavor = `TFG-Prod-V13-${segell}`.padEnd(32, '0').substring(0, 32)
-
-      // guardam la llavor per si BCovrin perd els permisos i hem de recuperar
-      writeFileSync('.seed-backup', JSON.stringify({
-        seed: llavor,
-        timestamp: new Date().toISOString()
-      }, null, 2), 'utf-8')
-      console.log('    ... llavor guardada a .seed-backup (no pujar a git!)')
-
+      const llavor = obtenirSeed()
       const llavoraBytes = TypedArrayEncoder.fromString(llavor)
       const clau = await node.wallet.createKey({ keyType: KeyType.Ed25519, seed: llavoraBytes as any })
       didCru = TypedArrayEncoder.toBase58(clau.publicKey.slice(0, 16))
@@ -67,7 +89,7 @@ const main = async () => {
       console.log('[ok] Identitat guardada al disc.')
     }
 
-// ─── 2. Schema v1.2.0 ────────────────────────────────────────────────────
+    // ─── 2. Schema v1.2.0 ────────────────────────────────────────────────────
     // versió nova perquè afegim 'revocation_index' per a la revocació W3C Bitstring
     console.log('\n--> [2/4] Registrant schema v1.2.0...')
     const nomSchema = 'Ordre-Manteniment'

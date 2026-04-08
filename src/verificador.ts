@@ -86,6 +86,12 @@ async function verificarRevocacio(revocationIndex: number): Promise<boolean> {
       return false
     }
 
+    // rebutjar llistes caducades evita atacs de replay amb captures antigues
+    if (new Date(signat.payload.validUntil) < new Date()) {
+      console.error('[revocació] status-list caducada — possible replay attack')
+      return false
+    }
+
     // llegir el bit
     const buf = descodificarEncodedList(signat.payload.encodedList)
     const bit = llegirBitDeBuffer(buf, revocationIndex)
@@ -205,7 +211,7 @@ const main = async () => {
   console.log('--> [1/4] Inicialitzant agent Verificador...')
   const verificador: AgentIndustrial = await FabricaAgents.crear(
     'Verificador-Acceso-V1',
-    'clave-verificador-V1',
+    process.env.WALLET_KEY_VERIFICADOR ?? 'clave-verificador-V1',
     { port: PORT_VERIFICADOR, endpoints: [endpointPublic] }
   )
   await verificador.initialize()
@@ -242,7 +248,13 @@ const main = async () => {
           for (const [k, v] of Object.entries(attrsRevelats)) {
             attrs[k] = (v as any).raw
           }
-        } catch {}
+        } catch (e) {
+          console.warn('[warn] no s\'han pogut extreure atributs de la prova:', e)
+        }
+
+        // cancel·lam el timer de ronda 1 si encara és actiu
+        const t1 = timersRonda1.get(connId!)
+        if (t1 !== undefined) { clearTimeout(t1); timersRonda1.delete(connId!) }
 
         // ── és ronda 1? ──────────────────────────────────────────────────────
         if (!rondesPendents.has(connId!)) {
@@ -263,8 +275,9 @@ const main = async () => {
 
           // validar que la OT és d'avui
           const avui = new Date().toISOString().split('T')[0]
-          if (attrs['grup_data'] !== avui) {
-            console.log(`\n❌ ACCÉS DENEGAT — OT caducada (data: ${attrs['grup_data']}, avui: ${avui})`)
+          const dataOT = attrs['grup_data']?.split('T')[0] ?? ''
+          if (dataOT !== avui) {
+            console.log(`\n❌ ACCÉS DENEGAT — OT caducada (data: ${dataOT}, avui: ${avui})`)
             ultimEsdeveniment = {
               ts: new Date().toISOString(),
               valid: false,
@@ -440,6 +453,7 @@ const main = async () => {
   urlInvitacio = oobInicial.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
+  const timersRonda1 = new Map<string, ReturnType<typeof setTimeout>>()
   // ── 5. Listener de connexions — quan l'operari escaneja el QR ────────────
   verificador.events.on<ConnectionStateChangedEvent>(
     ConnectionEventTypes.ConnectionStateChanged,
@@ -480,9 +494,7 @@ const main = async () => {
         }
       }, 30_000)
 
-      // guardam el timer per si el volem cancel·lar (de moment no cal,
-      // el ProofState.Done de ronda 1 va prou ràpid)
-      // si en el futur cal cancel·lar-lo, afegir un Map<connId, timer> aquí
+timersRonda1.set(connexio.id, timerId)
     }
   )
 

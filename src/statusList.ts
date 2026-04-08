@@ -90,6 +90,7 @@ export interface StatusListPayload {
   statusPurpose:     string
   encodedList:       string          // GZIP → base64url
   issuedAt:          string          // ISO 8601
+  validUntil:        string          // ISO 8601 la llista caduca en 5 minuts
 }
 
 export function construirPayload(urlPublica: string): StatusListPayload {
@@ -104,6 +105,7 @@ export function construirPayload(urlPublica: string): StatusListPayload {
     statusPurpose: 'revocation',
     encodedList,
     issuedAt:      new Date().toISOString(),
+    validUntil:    new Date(Date.now() + 5 * 60 * 1000).toISOString(),
   }
 }
 
