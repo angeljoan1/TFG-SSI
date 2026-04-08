@@ -67,18 +67,17 @@ const main = async () => {
       console.log('[ok] Identitat guardada al disc.')
     }
 
-    // ─── 2. Schema v1.1.0 ────────────────────────────────────────────────────
-    // versió nova perquè afegim 'riscos' i 'certificacions' a l'ordre de treball
-    // el verificador llegirà aquests camps per saber quines credencials demanar
-    console.log('\n--> [2/4] Registrant schema v1.1.0...')
+// ─── 2. Schema v1.2.0 ────────────────────────────────────────────────────
+    // versió nova perquè afegim 'revocation_index' per a la revocació W3C Bitstring
+    console.log('\n--> [2/4] Registrant schema v1.2.0...')
     const nomSchema = 'Ordre-Manteniment'
-    const versioSchema = '1.1.0'
+    const versioSchema = '1.2.0'
     let schemaId = ''
 
     try {
       const resultatSchema = await node.modules.anoncreds.registerSchema({
         schema: {
-          attrNames: ['id_ordre', 'equip', 'tasca', 'data', 'riscos', 'certificacions'],
+          attrNames: ['id_ordre', 'equip', 'tasca', 'data', 'riscos', 'certificacions', 'revocation_index'],
           issuerId: didPublic,
           name: nomSchema,
           version: versioSchema,

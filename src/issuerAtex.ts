@@ -1,6 +1,6 @@
 // arxiu: src/issuerAtex.ts
 // emissor del certificat ATEX (zones explosives)
-// executa: NGROK_ENDPOINT=https://xxx.ngrok-free.app npx tsx src/issuerAtex.ts
+// executa: npx tsx src/issuerAtex.ts
 
 import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
 import {
@@ -11,14 +11,8 @@ import {
   CredentialStateChangedEvent,
   CredentialState,
 } from '@credo-ts/core'
-import { DID_ATEX, CRED_DEF_ATEX, PORT_ATEX } from './configuracio'
-
-const endpointNgrok = process.env.NGROK_ENDPOINT
-if (!endpointNgrok) {
-  console.error('ERROR: cal definir NGROK_ENDPOINT')
-  console.error('exemple: NGROK_ENDPOINT=https://xxxx.ngrok-free.app npx tsx src/issuerAtex.ts')
-  process.exit(1)
-}
+import { DID_ATEX, CRED_DEF_ATEX, PORT_ATEX, ENDPOINT_ATEX } from './configuracio'
+const endpointPublic = ENDPOINT_ATEX
 
 // data d'expiració en unix timestamp (segons)
 // el verificador farà un predicat >= avui per comprovar-ho criptogràficament
@@ -42,12 +36,12 @@ const main = async () => {
   console.log('================================================================\n')
 
   console.log(`--> [1/3] Arrencant agent ATEX al port ${PORT_ATEX}...`)
-  console.log(`          Endpoint públic: ${endpointNgrok}\n`)
+  console.log(`          Endpoint públic: ${endpointPublic}\n`)
 
   const emissorAtex: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-ATEX-V1',
     'clave-maestra-ATEX-V1',
-    { port: PORT_ATEX, endpoints: [endpointNgrok] }
+    { port: PORT_ATEX, endpoints: [endpointPublic] }
   )
   await emissorAtex.initialize()
   console.log('[ok] Agent ATEX inicialitzat.\n')
@@ -115,7 +109,7 @@ const main = async () => {
     multiUseInvitation: true,
   })
 
-  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointNgrok })
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
   console.log('--> Servidor ATEX escoltant. Ctrl+C per aturar.\n')
