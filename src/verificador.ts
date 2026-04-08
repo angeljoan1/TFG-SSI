@@ -20,7 +20,7 @@ import {
 import express, { Request, Response } from 'express'
 import path from 'path'
 import { verificarSignatura, descodificarEncodedList, llegirBitDeBuffer, StatusListSignat } from './statusList'
-import { STATUS_LIST_URL, STATUS_LIST_PUB_KEY_URL } from './configuracio'
+import { STATUS_LIST_URL, STATUS_LIST_PUBLIC_KEY } from './configuracio'
 import { CRED_DEF_OT, CRED_DEF_ATEX, CRED_DEF_SOLDADOR, PORT_VERIFICADOR, ENDPOINT_VERIFICADOR } from './configuracio'
 
 const endpointPublic = ENDPOINT_VERIFICADOR
@@ -72,13 +72,8 @@ async function verificarRevocacio(revocationIndex: number): Promise<boolean> {
     }
     const signat = await respostaList.json() as StatusListSignat
 
-    // obtenir clau pública del emissor
-    const respostaCau = await fetch(STATUS_LIST_PUB_KEY_URL)
-    if (!respostaCau.ok) {
-      console.error('[revocació] no s\'ha pogut obtenir la clau pública')
-      return false
-    }
-    const { publicKeyPem } = await respostaCau.json() as { publicKeyPem: string }
+    // clau pública ancorada a configuracio.ts — no depèn del servidor en temps d'execució
+    const publicKeyPem = STATUS_LIST_PUBLIC_KEY
 
     // validar signatura
     if (!verificarSignatura(signat, publicKeyPem)) {
@@ -215,6 +210,7 @@ const main = async () => {
     { port: PORT_VERIFICADOR, endpoints: [endpointPublic] }
   )
   await verificador.initialize()
+  const timersRonda1 = new Map<string, ReturnType<typeof setTimeout>>()
   console.log(`[ok] Agent inicialitzat. Escoltant al port ${PORT_VERIFICADOR}.`)
   console.log(`[ok] Endpoint públic: ${endpointPublic}\n`)
 
@@ -453,7 +449,7 @@ const main = async () => {
   urlInvitacio = oobInicial.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
-  const timersRonda1 = new Map<string, ReturnType<typeof setTimeout>>()
+  
   // ── 5. Listener de connexions — quan l'operari escaneja el QR ────────────
   verificador.events.on<ConnectionStateChangedEvent>(
     ConnectionEventTypes.ConnectionStateChanged,

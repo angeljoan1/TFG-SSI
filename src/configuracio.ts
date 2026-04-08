@@ -29,6 +29,12 @@ export const ENDPOINT_ATEX     = 'https://atex.angeljoan.com'
 export const ENDPOINT_SOLDADOR = 'https://soldador.angeljoan.com'
 
 // ─── Revocació (Fase 2) ───────────────────────────────────────────────────────
-export const STATUS_LIST_URL    = 'https://ot.angeljoan.com/status-list'
-export const STATUS_LIST_PUB_KEY_URL = 'https://ot.angeljoan.com/status-list/public-key'
+export const STATUS_LIST_URL = 'https://ot.angeljoan.com/status-list'
+
+// clau pública Ed25519 de l'emissor OT ancorada al codi del verificador
+// evita que el cercle de confiança depengui del mateix servidor que emet la llista
+// en producció vindria del DID Document de l'emissor resolt a la blockchain
+export const STATUS_LIST_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA/X6JsShlqxyhhcxxoAcOeN2s8cHEOTg3SZYma/QXQbs=
+-----END PUBLIC KEY-----`
 
