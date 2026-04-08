@@ -1,4 +1,302 @@
-// arxiu: src/verificador.ts
+// arxiu: src/issuer.ts
+// emissor de les Ordres de Treball (OT) — corre al portàtil A
+// executa: npx tsx src/issuer.ts
+
+import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
+import {
+  ConnectionEventTypes,
+  ConnectionStateChangedEvent,
+  DidExchangeState,
+  CredentialEventTypes,
+  CredentialStateChangedEvent,
+  CredentialState,
+} from '@credo-ts/core'
+import express, { Request, Response } from 'express'
+import path from 'path'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { CRED_DEF_OT, PORT_OT, ENDPOINT_OT, ENDPOINT_OT_WEB } from './configuracio'
+import { carregarOGenerarClau, construirPayload, signarStatusList, revocarCredencial, restaurarCredencial } from './statusList'
+
+const endpointPublic = ENDPOINT_OT
+
+// clau de signatura Ed25519 — es genera una vegada i es reutilitza
+const clauSignatura = carregarOGenerarClau()
+
+// comptador d'índex de revocació — persistit a través de operaris.json
+function propIndexRevocacio(): number {
+  const llista = llegirOperaris()
+  if (llista.length === 0) return 0
+  return Math.max(...llista.map(o => o.revocation_index)) + 1
+}
+
+// fitxer on guardam els operaris registrats (connectionId <-> nom)
+const FITXER_OPERARIS = path.join(process.cwd(), 'operaris.json')
+
+interface Operari {
+  nom:              string
+  connectionId:     string
+  registratEn:      string
+  revocation_index: number    // índex al bitstring W3C
+  ot_ids:           string[]  // historial d'OT emeses a aquest operari
+}
+
+function llegirOperaris(): Operari[] {
+  if (!existsSync(FITXER_OPERARIS)) return []
+  return JSON.parse(readFileSync(FITXER_OPERARIS, 'utf-8'))
+}
+
+function guardarOperaris(llista: Operari[]): void {
+  writeFileSync(FITXER_OPERARIS, JSON.stringify(llista, null, 2), 'utf-8')
+}
+
+// imprimeix QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
+async function imprimirQR(url: string): Promise<void> {
+  try {
+    const qr = await import('qrcode-terminal')
+    qr.default.generate(url, { small: true })
+  } catch {
+    console.log('[qr no disponible — escaneja la URL directament]')
+  }
+  console.log(`\n📲 URL d'invitació:\n${url}\n`)
+}
+
+const main = async () => {
+  console.log('================================================================')
+  console.log('  EMISSOR OT — Servidor d\'Ordres de Treball')
+  console.log('================================================================\n')
+
+  // ─── 1. Arrencar agent emissor ────────────────────────────────────────────
+  console.log(`--> [1/3] Arrencant agent emissor al port ${PORT_OT}...`)
+console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
+  const emissor: AgentIndustrial = await FabricaAgents.crear(
+    'Servidor-Autonomo-V13',
+    'clave-maestra-V13',
+    { port: PORT_OT, endpoints: [endpointPublic] }
+  )
+  await emissor.initialize()
+  console.log('[ok] Agent emissor inicialitzat i escoltant.\n')
+
+  // ─── 2. Comprovar que la CredDef existeix al ledger ───────────────────────
+  console.log('--> [2/3] Comprovant CredDef al ledger...')
+  const resultatCredDef = await emissor.modules.anoncreds.getCredentialDefinition(CRED_DEF_OT)
+  if (!resultatCredDef.credentialDefinition) {
+    console.error(`[ERROR FATAL] CredDef no trobada: ${CRED_DEF_OT}`)
+    console.error('             Executa setup.ts primer.')
+    process.exit(1)
+  }
+  console.log(`[ok] CredDef verificada: ${CRED_DEF_OT}\n`)
+
+  // ─── 3. Listeners d'events ────────────────────────────────────────────────
+
+  // connexions noves sense nom assignat encara
+  const pendents = new Set<string>()
+
+  emissor.events.on<ConnectionStateChangedEvent>(
+    ConnectionEventTypes.ConnectionStateChanged,
+    async ({ payload }) => {
+      const registre = payload.connectionRecord
+      if (registre.state === DidExchangeState.Completed) {
+        console.log(`\n[connexió] ID: ${registre.id}`)
+        const llista = llegirOperaris()
+        const jaExisteix = llista.some((o) => o.connectionId === registre.id)
+        if (!jaExisteix) {
+          pendents.add(registre.id)
+          console.log('  → connexió nova, pendent de posar nom al formulari web')
+        } else {
+          console.log('  → operari ja registrat')
+        }
+      }
+    }
+  )
+
+  emissor.events.on<CredentialStateChangedEvent>(
+    CredentialEventTypes.CredentialStateChanged,
+    async ({ payload }) => {
+      const estat = payload.credentialRecord.state
+      console.log(`  [cred] -> ${estat}`)
+      if (estat === CredentialState.Done) {
+        console.log('\n================================================')
+        console.log('  CREDENCIAL EMESA I ACCEPTADA PER L\'OPERARI!')
+        console.log('================================================\n')
+      }
+    }
+  )
+
+  // ─── 4. Servidor Express (formulari web + API REST) ───────────────────────
+  const app = express()
+  app.use(express.json())
+  app.use(express.static(path.join(__dirname, '..', 'public')))
+
+  // llista completa d'operaris registrats
+  app.get('/api/operaris', (_req: Request, res: Response) => {
+    res.json(llegirOperaris())
+  })
+
+  // connexions noves sense nom assignat
+  app.get('/api/pendents', (_req: Request, res: Response) => {
+    res.json([...pendents])
+  })
+
+  // assignar nom a una connexió pendent
+  app.post('/api/operaris', (req: Request, res: Response) => {
+    const { connectionId, nom } = req.body as { connectionId: string; nom: string }
+    if (!connectionId || !nom) {
+      res.status(400).json({ error: 'falten camps: connectionId, nom' })
+      return
+    }
+    const llista = llegirOperaris()
+    if (llista.some((o) => o.connectionId === connectionId)) {
+      res.status(409).json({ error: 'aquest connectionId ja està registrat' })
+      return
+    }
+    llista.push({
+      nom,
+      connectionId,
+      registratEn:      new Date().toISOString(),
+      revocation_index: propIndexRevocacio(),
+      ot_ids:           [],
+    })
+    guardarOperaris(llista)
+    pendents.delete(connectionId)
+    console.log(`[directori] operari registrat: ${nom} → ${connectionId}`)
+    res.json({ ok: true })
+  })
+
+  // emetre OT a un operari del directori
+  // rep: connectionId, equip, tasca, data, riscos (string), certificacions (string)
+  // riscos i certificacions vénen dels checkboxes del formulari serialitzats amb comes
+  app.post('/api/emetre', async (req: Request, res: Response) => {
+    const { connectionId, equip, tasca, data, riscos, certificacions } = req.body as {
+      connectionId: string
+      equip: string
+      tasca: string
+      data: string
+      riscos: string
+      certificacions: string
+    }
+
+    if (!connectionId || !equip || !tasca || !data) {
+      res.status(400).json({ error: 'falten camps obligatoris: connectionId, equip, tasca, data' })
+      return
+    }
+
+    const llista = llegirOperaris()
+    if (!llista.some((o) => o.connectionId === connectionId)) {
+      res.status(404).json({ error: 'operari no trobat al directori' })
+      return
+    }
+
+    try {
+      const idOrdre = `ORD-${Date.now()}`
+      const operari = llista.find(o => o.connectionId === connectionId)!
+      await emissor.credentials.offerCredential({
+        connectionId,
+        protocolVersion: 'v2',
+        credentialFormats: {
+          anoncreds: {
+            credentialDefinitionId: CRED_DEF_OT,
+            attributes: [
+              { name: 'id_ordre',        value: idOrdre },
+              { name: 'equip',           value: equip },
+              { name: 'tasca',           value: tasca },
+              { name: 'data',            value: data },
+              // si no s'han marcat riscos o certificacions, guardam string buit
+              { name: 'riscos',          value: riscos ?? '' },
+              { name: 'certificacions',  value: certificacions ?? '' },
+              { name: 'revocation_index',  value: String(operari.revocation_index) },
+            ],
+          },
+        },
+      })
+      console.log(`[api] OT emesa → ${connectionId} | ${idOrdre} | riscos: ${riscos} | certs: ${certificacions}`)
+      // guardar id_ordre a l'historial de l'operari
+      const llistaActualitzada = llegirOperaris()
+      const idx = llistaActualitzada.findIndex(o => o.connectionId === connectionId)
+      if (idx !== -1) {
+        llistaActualitzada[idx].ot_ids.push(idOrdre)
+        guardarOperaris(llistaActualitzada)
+      }
+      res.json({ ok: true, id_ordre: idOrdre })
+    } catch (error) {
+      console.error('[api error]', error)
+      res.status(500).json({ error: 'error en emetre la credencial' })
+    }
+  })
+
+  // ─── Endpoints de revocació ───────────────────────────────────────
+
+  // W3C BitstringStatusList — el verificador fa fetch aquí
+  app.get('/status-list', (_req: Request, res: Response) => {
+    const payload = construirPayload(ENDPOINT_OT_WEB)
+    const signat  = signarStatusList(payload, clauSignatura.privateKeyPem)
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.json(signat)
+  })
+
+  
+
+  // clau pública per al verificador (alternativa a BCovrin per a TFG)
+  app.get('/status-list/public-key', (_req: Request, res: Response) => {
+    res.json({ publicKeyPem: clauSignatura.publicKeyPem })
+  })
+
+  // revocar una OT per índex — crida manual de l'administrador
+  app.post('/api/revocar', (req: Request, res: Response) => {
+    const { revocation_index } = req.body as { revocation_index: number }
+    if (revocation_index === undefined || revocation_index === null) {
+      res.status(400).json({ error: 'falta revocation_index' })
+      return
+    }
+    try {
+      revocarCredencial(Number(revocation_index))
+      console.log(`[api] OT revocada — índex ${revocation_index}`)
+      res.json({ ok: true })
+    } catch (error) {
+      res.status(400).json({ error: String(error) })
+    }
+  })
+
+  // restaurar (per a proves) — no cal en producció
+  app.post('/api/restaurar', (req: Request, res: Response) => {
+    const { revocation_index } = req.body as { revocation_index: number }
+    try {
+      restaurarCredencial(Number(revocation_index))
+      res.json({ ok: true })
+    } catch (error) {
+      res.status(400).json({ error: String(error) })
+    }
+  })
+
+const PORT_WEB = PORT_OT + 100
+  app.listen(PORT_WEB, () => {
+    console.log(`[web] Formulari disponible a http://localhost:${PORT_WEB}\n`)
+  })
+
+  // ─── 5. Generar invitació OOB ─────────────────────────────────────────────
+  console.log('--> [3/3] Generant invitació OOB...\n')
+
+  const oob = await emissor.oob.createInvitation({
+    label: 'Emissor Industrial: Rep la teva Ordre de Treball',
+    multiUseInvitation: true,
+  })
+
+  const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointPublic })
+  await imprimirQR(urlInvitacio)
+
+  console.log('--> Servidor emissor escoltant. Ctrl+C per aturar.\n')
+
+  process.on('SIGINT', async () => {
+    console.log('\n--> tancant agent emissor...')
+    await emissor.shutdown()
+    process.exit(0)
+  })
+}
+
+main().catch((error) => {
+  console.error('\n[ERROR FATAL]:', error)
+  process.exit(1)
+})// arxiu: src/verificador.ts
 // punt de control d'accés SSI — corre al portàtil B
 // executa: npx tsx src/verificador.ts
 // 
@@ -499,4 +797,193 @@ const main = async () => {
   })
 }
 
-main()
+main()// arxiu: src/statusList.ts
+// W3C BitstringStatusList — gestió de la llista de revocació de les OT
+// format: GZIP(bitstring) → base64url, capacitat 16384 entrades
+// signatura: Ed25519 sobre JSON canònic (claus ordenades alfabèticament)
+
+import { generateKeyPairSync, createSign, createVerify } from 'crypto'
+import { gzipSync, gunzipSync } from 'zlib'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import path from 'path'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MIDA_BITS        = 16_384
+const FITXER_CLAU      = path.join(process.cwd(), 'ot-signing-key.json')
+const FITXER_BITSTRING = path.join(process.cwd(), 'ot-status-bits.bin')
+
+// ─── Clau de signatura Ed25519 ────────────────────────────────────────────────
+
+export interface ParellClaus {
+  publicKeyPem:  string
+  privateKeyPem: string
+}
+
+export function carregarOGenerarClau(): ParellClaus {
+  if (existsSync(FITXER_CLAU)) {
+    return JSON.parse(readFileSync(FITXER_CLAU, 'utf-8')) as ParellClaus
+  }
+  console.log('[status-list] generant parella de claus Ed25519...')
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519', {
+    publicKeyEncoding:  { type: 'spki',  format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  })
+  const parell: ParellClaus = { publicKeyPem: publicKey, privateKeyPem: privateKey }
+  writeFileSync(FITXER_CLAU, JSON.stringify(parell, null, 2), 'utf-8')
+  console.log(`[status-list] clau guardada a ${FITXER_CLAU}`)
+  return parell
+}
+
+// ─── Bitstring ────────────────────────────────────────────────────────────────
+
+function carregarBuffer(): Buffer {
+  const midaBytes = MIDA_BITS / 8   // 2048 bytes
+  if (existsSync(FITXER_BITSTRING)) {
+    const buf = readFileSync(FITXER_BITSTRING)
+    if (buf.length === midaBytes) return buf
+    console.warn('[status-list] buffer corrupte, reinicialitzant')
+  }
+  return Buffer.alloc(midaBytes, 0)
+}
+
+function guardarBuffer(buf: Buffer): void {
+  writeFileSync(FITXER_BITSTRING, buf)
+}
+
+// MSB first — especificació W3C §2.1
+function coordenades(index: number): { byte: number; bit: number } {
+  return { byte: Math.floor(index / 8), bit: 7 - (index % 8) }
+}
+
+export function llegirBit(index: number): 0 | 1 {
+  if (index < 0 || index >= MIDA_BITS) throw new RangeError(`index fora de rang: ${index}`)
+  const buf = carregarBuffer()
+  const { byte, bit } = coordenades(index)
+  return ((buf[byte] >> bit) & 1) as 0 | 1
+}
+
+export function revocarCredencial(index: number): void {
+  if (index < 0 || index >= MIDA_BITS) throw new RangeError(`index fora de rang: ${index}`)
+  const buf = carregarBuffer()
+  const { byte, bit } = coordenades(index)
+  buf[byte] |= (1 << bit)
+  guardarBuffer(buf)
+  console.log(`[status-list] OT índex ${index} marcada com a REVOCADA`)
+}
+
+export function restaurarCredencial(index: number): void {
+  if (index < 0 || index >= MIDA_BITS) throw new RangeError(`index fora de rang: ${index}`)
+  const buf = carregarBuffer()
+  const { byte, bit } = coordenades(index)
+  buf[byte] &= ~(1 << bit)
+  guardarBuffer(buf)
+  console.log(`[status-list] OT índex ${index} RESTAURADA (vàlida)`)
+}
+
+// ─── Serialització W3C ────────────────────────────────────────────────────────
+
+export interface StatusListPayload {
+  '@context':        string[]
+  id:                string
+  type:              string
+  statusPurpose:     string
+  encodedList:       string          // GZIP → base64url
+  issuedAt:          string          // ISO 8601
+}
+
+export function construirPayload(urlPublica: string): StatusListPayload {
+  const buf         = carregarBuffer()
+  const comprimida  = gzipSync(buf)
+  const encodedList = comprimida.toString('base64url')
+
+  return {
+    '@context':    ['https://www.w3.org/ns/credentials/v2'],
+    id:            `${urlPublica}/status-list`,
+    type:          'BitstringStatusList',
+    statusPurpose: 'revocation',
+    encodedList,
+    issuedAt:      new Date().toISOString(),
+  }
+}
+
+// ─── Signatura i verificació ──────────────────────────────────────────────────
+
+// JSON canònic: claus ordenades — garanteix que el verificador calcula el mateix hash
+function canonicalitzar(obj: object): string {
+  return JSON.stringify(obj, Object.keys(obj).sort())
+}
+
+export interface StatusListSignat {
+  payload:   StatusListPayload
+  signature: string   // base64url, Ed25519 sobre canonicalitzar(payload)
+}
+
+export function signarStatusList(
+  payload:    StatusListPayload,
+  privateKey: string
+): StatusListSignat {
+  const signer = createSign('SHA512')   // Node.js usa SHA-512 internament amb Ed25519
+  signer.update(canonicalitzar(payload))
+  signer.end()
+  const signature = signer.sign({ key: privateKey, format: 'pem' }, 'base64url')
+  return { payload, signature }
+}
+
+export function verificarSignatura(
+  signat:    StatusListSignat,
+  publicKey: string
+): boolean {
+  try {
+    const verifier = createVerify('SHA512')
+    verifier.update(canonicalitzar(signat.payload))
+    verifier.end()
+    return verifier.verify({ key: publicKey, format: 'pem' }, signat.signature, 'base64url')
+  } catch {
+    return false
+  }
+}
+
+// ─── Descodificació (per al verificador) ─────────────────────────────────────
+
+export function descodificarEncodedList(encodedList: string): Buffer {
+  const comprimida = Buffer.from(encodedList, 'base64url')
+  return gunzipSync(comprimida)
+}
+
+export function llegirBitDeBuffer(buf: Buffer, index: number): 0 | 1 {
+  const { byte, bit } = coordenades(index)
+  return ((buf[byte] >> bit) & 1) as 0 | 1
+}// arxiu: src/configuracio.ts
+// totes les constants de la infraestructura aquí
+// si registres un schema nou o canvies de testnet, només toques aquest arxiu
+
+// ─── Emissor OT (Oficina Tècnica) ────────────────────────────────────────────
+export const DID_OT        = 'did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM'
+export const CRED_DEF_OT = 'did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM/anoncreds/v0/CLAIM_DEF/3159509/default'
+// schema v1.1.0 — afegits camps 'riscos' i 'certificacions'
+// després de fer setup.ts, actualitza CRED_DEF_OT amb el nou ID que imprimeix
+export const SCHEMA_OT   = `${DID_OT}/anoncreds/v0/SCHEMA/Ordre-Manteniment/1.2.0`
+
+// ─── Emissor ATEX (Directiva zones explosives) ────────────────────────────────
+export const DID_ATEX      = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B'
+export const CRED_DEF_ATEX = 'did:indy:bcovrin:test:Lt3iLG3iFaWavozFbfNi7B/anoncreds/v0/CLAIM_DEF/3152670/default'
+
+// ─── Emissor Soldador (Escola d'homologació) ──────────────────────────────────
+export const DID_SOLDADOR      = 'did:indy:bcovrin:test:BHjxHoWTyspfzk4jeevS7w'
+export const CRED_DEF_SOLDADOR = 'did:indy:bcovrin:test:BHjxHoWTyspfzk4jeevS7w/anoncreds/v0/CLAIM_DEF/3152687/default'// ─── Ports ────────────────────────────────────────────────────────────────────
+export const PORT_OT       = 3011
+export const PORT_VERIFICADOR = 3002
+export const PORT_ATEX     = 3003
+export const PORT_SOLDADOR = 3004
+
+// ─── Endpoints públics (Cloudflare Tunnels) ───────────────────────────────────
+export const ENDPOINT_OT      = 'https://ot-didcomm.angeljoan.com'  // wallet connecta aquí
+export const ENDPOINT_OT_WEB  = 'https://ot.angeljoan.com'          // status-list i formulari
+export const ENDPOINT_VERIFICADOR = 'https://acces.angeljoan.com'
+export const ENDPOINT_ATEX     = 'https://atex.angeljoan.com'
+export const ENDPOINT_SOLDADOR = 'https://soldador.angeljoan.com'
+
+// ─── Revocació (Fase 2) ───────────────────────────────────────────────────────
+export const STATUS_LIST_URL    = 'https://ot.angeljoan.com/status-list'
+export const STATUS_LIST_PUB_KEY_URL = 'https://ot.angeljoan.com/status-list/public-key'
+

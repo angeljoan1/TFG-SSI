@@ -14,17 +14,30 @@ import {
 import express, { Request, Response } from 'express'
 import path from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { CRED_DEF_OT, PORT_OT, ENDPOINT_OT } from './configuracio'
+import { CRED_DEF_OT, PORT_OT, ENDPOINT_OT, ENDPOINT_OT_WEB } from './configuracio'
+import { carregarOGenerarClau, construirPayload, signarStatusList, revocarCredencial, restaurarCredencial } from './statusList'
 
 const endpointPublic = ENDPOINT_OT
 
-// fitxer on guardam els operaris registrats (connectionId <-> nom)
+// clau de signatura Ed25519 — es genera una vegada i es reutilitza
+const clauSignatura = carregarOGenerarClau()
+
+// fitxer on guardam els operaris registrats
 const FITXER_OPERARIS = path.join(process.cwd(), 'operaris.json')
 
+// cada OT té el seu propi índex al bitstring — un operari pot tenir-ne moltes
+interface OTEmesa {
+  id:               string
+  revocation_index: number
+  emesaEn:          string
+}
+
+// l'operari ja no té revocation_index propi — cada OT el té
 interface Operari {
-  nom: string
+  nom:          string
   connectionId: string
-  registratEn: string
+  registratEn:  string
+  ot_ids:       OTEmesa[]
 }
 
 function llegirOperaris(): Operari[] {
@@ -36,7 +49,14 @@ function guardarOperaris(llista: Operari[]): void {
   writeFileSync(FITXER_OPERARIS, JSON.stringify(llista, null, 2), 'utf-8')
 }
 
-// imprimeix QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
+// retorna el següent índex global disponible — busca el màxim entre totes les OT de tots els operaris
+function propIndexRevocacio(): number {
+  const llista = llegirOperaris()
+  const totsEls = llista.flatMap(o => o.ot_ids.map(ot => ot.revocation_index))
+  if (totsEls.length === 0) return 0
+  return Math.max(...totsEls) + 1
+}
+
 async function imprimirQR(url: string): Promise<void> {
   try {
     const qr = await import('qrcode-terminal')
@@ -54,7 +74,7 @@ const main = async () => {
 
   // ─── 1. Arrencar agent emissor ────────────────────────────────────────────
   console.log(`--> [1/3] Arrencant agent emissor al port ${PORT_OT}...`)
-console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
+  console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
   const emissor: AgentIndustrial = await FabricaAgents.crear(
     'Servidor-Autonomo-V13',
     'clave-maestra-V13',
@@ -74,8 +94,6 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
   console.log(`[ok] CredDef verificada: ${CRED_DEF_OT}\n`)
 
   // ─── 3. Listeners d'events ────────────────────────────────────────────────
-
-  // connexions noves sense nom assignat encara
   const pendents = new Set<string>()
 
   emissor.events.on<ConnectionStateChangedEvent>(
@@ -109,22 +127,20 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
     }
   )
 
-  // ─── 4. Servidor Express (formulari web + API REST) ───────────────────────
+  // ─── 4. Servidor Express ──────────────────────────────────────────────────
   const app = express()
   app.use(express.json())
   app.use(express.static(path.join(__dirname, '..', 'public')))
 
-  // llista completa d'operaris registrats
   app.get('/api/operaris', (_req: Request, res: Response) => {
     res.json(llegirOperaris())
   })
 
-  // connexions noves sense nom assignat
   app.get('/api/pendents', (_req: Request, res: Response) => {
     res.json([...pendents])
   })
 
-  // assignar nom a una connexió pendent
+  // registrar operari — ja NO s'assigna revocation_index aquí
   app.post('/api/operaris', (req: Request, res: Response) => {
     const { connectionId, nom } = req.body as { connectionId: string; nom: string }
     if (!connectionId || !nom) {
@@ -136,16 +152,19 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
       res.status(409).json({ error: 'aquest connectionId ja està registrat' })
       return
     }
-    llista.push({ nom, connectionId, registratEn: new Date().toISOString() })
+    llista.push({
+      nom,
+      connectionId,
+      registratEn: new Date().toISOString(),
+      ot_ids:      [],
+    })
     guardarOperaris(llista)
     pendents.delete(connectionId)
     console.log(`[directori] operari registrat: ${nom} → ${connectionId}`)
     res.json({ ok: true })
   })
 
-  // emetre OT a un operari del directori
-  // rep: connectionId, equip, tasca, data, riscos (string), certificacions (string)
-  // riscos i certificacions vénen dels checkboxes del formulari serialitzats amb comes
+  // emetre OT — s'assigna un índex de revocació únic per aquesta OT
   app.post('/api/emetre', async (req: Request, res: Response) => {
     const { connectionId, equip, tasca, data, riscos, certificacions } = req.body as {
       connectionId: string
@@ -168,7 +187,9 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
     }
 
     try {
-      const idOrdre = `ORD-${Date.now()}`
+      const idOrdre        = `ORD-${Date.now()}`
+      const revocationIndex = propIndexRevocacio()  // índex únic per aquesta OT
+
       await emissor.credentials.offerCredential({
         connectionId,
         protocolVersion: 'v2',
@@ -176,26 +197,111 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
           anoncreds: {
             credentialDefinitionId: CRED_DEF_OT,
             attributes: [
-              { name: 'id_ordre',        value: idOrdre },
-              { name: 'equip',           value: equip },
-              { name: 'tasca',           value: tasca },
-              { name: 'data',            value: data },
-              // si no s'han marcat riscos o certificacions, guardam string buit
-              { name: 'riscos',          value: riscos ?? '' },
-              { name: 'certificacions',  value: certificacions ?? '' },
+              { name: 'id_ordre',         value: idOrdre },
+              { name: 'equip',            value: equip },
+              { name: 'tasca',            value: tasca },
+              { name: 'data',             value: data },
+              { name: 'riscos',           value: riscos ?? '' },
+              { name: 'certificacions',   value: certificacions ?? '' },
+              { name: 'revocation_index', value: String(revocationIndex) },
             ],
           },
         },
       })
-      console.log(`[api] OT emesa → ${connectionId} | ${idOrdre} | riscos: ${riscos} | certs: ${certificacions}`)
-      res.json({ ok: true, id_ordre: idOrdre })
+
+      // guardar la OT amb el seu índex propi al directori
+      const llistaActualitzada = llegirOperaris()
+      const idx = llistaActualitzada.findIndex(o => o.connectionId === connectionId)
+      if (idx !== -1) {
+        llistaActualitzada[idx].ot_ids.push({
+          id:               idOrdre,
+          revocation_index: revocationIndex,
+          emesaEn:          new Date().toISOString(),
+        })
+        guardarOperaris(llistaActualitzada)
+      }
+
+      console.log(`[api] OT emesa → ${idOrdre} | operari: ${connectionId} | índex revocació: ${revocationIndex}`)
+      res.json({ ok: true, id_ordre: idOrdre, revocation_index: revocationIndex })
     } catch (error) {
       console.error('[api error]', error)
       res.status(500).json({ error: 'error en emetre la credencial' })
     }
   })
 
-  // el port web és el de DIDComm + 100 per no col·lisionar
+  // ─── Endpoints de revocació ───────────────────────────────────────────────
+
+  // W3C BitstringStatusList — el verificador fa fetch aquí
+  app.get('/status-list', (_req: Request, res: Response) => {
+    const payload = construirPayload(ENDPOINT_OT_WEB)
+    const signat  = signarStatusList(payload, clauSignatura.privateKeyPem)
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.json(signat)
+  })
+
+  // clau pública per al verificador
+  app.get('/status-list/public-key', (_req: Request, res: Response) => {
+    res.json({ publicKeyPem: clauSignatura.publicKeyPem })
+  })
+
+  // revocar una OT per id_ordre — cerca l'índex i activa el bit corresponent
+  app.post('/api/revocar', (req: Request, res: Response) => {
+    const { id_ordre } = req.body as { id_ordre: string }
+    if (!id_ordre) {
+      res.status(400).json({ error: 'falta id_ordre' })
+      return
+    }
+    const llista = llegirOperaris()
+    let indexTrobat: number | null = null
+    let nomOperari = ''
+    for (const operari of llista) {
+      const ot = operari.ot_ids.find(o => o.id === id_ordre)
+      if (ot) {
+        indexTrobat = ot.revocation_index
+        nomOperari  = operari.nom
+        break
+      }
+    }
+    if (indexTrobat === null) {
+      res.status(404).json({ error: `OT no trobada: ${id_ordre}` })
+      return
+    }
+    try {
+      revocarCredencial(indexTrobat)
+      console.log(`[api] OT revocada — id: ${id_ordre} | operari: ${nomOperari} | índex: ${indexTrobat}`)
+      res.json({ ok: true, id_ordre, revocation_index: indexTrobat, operari: nomOperari })
+    } catch (error) {
+      res.status(400).json({ error: String(error) })
+    }
+  })
+
+  // restaurar una OT per id_ordre (per a proves / error administratiu)
+  app.post('/api/restaurar', (req: Request, res: Response) => {
+    const { id_ordre } = req.body as { id_ordre: string }
+    if (!id_ordre) {
+      res.status(400).json({ error: 'falta id_ordre' })
+      return
+    }
+    const llista = llegirOperaris()
+    let indexTrobat: number | null = null
+    for (const operari of llista) {
+      const ot = operari.ot_ids.find(o => o.id === id_ordre)
+      if (ot) { indexTrobat = ot.revocation_index; break }
+    }
+    if (indexTrobat === null) {
+      res.status(404).json({ error: `OT no trobada: ${id_ordre}` })
+      return
+    }
+    try {
+      restaurarCredencial(indexTrobat)
+      console.log(`[api] OT restaurada — id: ${id_ordre} | índex: ${indexTrobat}`)
+      res.json({ ok: true, id_ordre, revocation_index: indexTrobat })
+    } catch (error) {
+      res.status(400).json({ error: String(error) })
+    }
+  })
+
   const PORT_WEB = PORT_OT + 100
   app.listen(PORT_WEB, () => {
     console.log(`[web] Formulari disponible a http://localhost:${PORT_WEB}\n`)
@@ -203,12 +309,10 @@ console.log(`          Endpoint públic (Cloudflare): ${endpointPublic}\n`)
 
   // ─── 5. Generar invitació OOB ─────────────────────────────────────────────
   console.log('--> [3/3] Generant invitació OOB...\n')
-
   const oob = await emissor.oob.createInvitation({
     label: 'Emissor Industrial: Rep la teva Ordre de Treball',
     multiUseInvitation: true,
   })
-
   const urlInvitacio = oob.outOfBandInvitation.toUrl({ domain: endpointPublic })
   await imprimirQR(urlInvitacio)
 
