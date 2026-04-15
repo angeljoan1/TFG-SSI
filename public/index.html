@@ -372,7 +372,6 @@
                     <span class="op-check">✓</span>
                     <button class="btn-sm btn-danger btn-eliminar" title="Eliminar operari">✕</button>
                 `
-                item.querySelector('.op-dot, .op-name, .op-connid, .op-check').parentElement
                 item.addEventListener('click', (e) => {
                     if (e.target.classList.contains('btn-eliminar')) return
                     seleccionarOp(op)
