@@ -19,8 +19,8 @@
 ### Issuer 1 — Oficina Tècnica (Ordre de Treball)
 - **Wallet:** Servidor-Autonomo-V13 / clave-maestra-V13
 - **DID:** did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM
-- **Schema:** Ordre-Manteniment v1.1.0 — atributs: id_ordre, equip, tasca, data, riscos, certificacions
-- **CredDef ID:** did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM/anoncreds/v0/CLAIM_DEF/3152613/default
+- **Schema:** Ordre-Manteniment v1.2.0 — atributs: id_ordre, equip, tasca, data, riscos, certificacions, revocation_index
+- **CredDef ID:** did:indy:bcovrin:test:UMJRJ7GzWpUeYBbQSMsdGM/anoncreds/v0/CLAIM_DEF/3159509/default
 - **Port emissor:** 3001
 
 ### Issuer 2 — Directiva ATEX

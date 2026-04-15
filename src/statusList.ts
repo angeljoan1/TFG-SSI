@@ -111,7 +111,10 @@ export function construirPayload(urlPublica: string): StatusListPayload {
 
 // ─── Signatura i verificació ──────────────────────────────────────────────────
 
-// JSON canònic: claus ordenades — garanteix que el verificador calcula el mateix hash
+// JSON canònic: claus del primer nivell ordenades alfabèticament.
+// Decisió conscient: StatusListPayload és un objecte pla (sense valors anidats
+// que siguin objectes), per tant l'ordenació superficial és suficient i correcta.
+// En estructures amb anidament complex caldria una canonicalització recursiva (JCS/RFC 8785).
 function canonicalitzar(obj: object): string {
   return JSON.stringify(obj, Object.keys(obj).sort())
 }

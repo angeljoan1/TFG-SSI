@@ -62,6 +62,10 @@ interface EstatRonda {
 const rondesPendents = new Map<string, EstatRonda>()
 // connectionId → estat de la ronda 1 completada
 
+// timers de ronda 1 — declarats aquí al costat de rondesPendents per claredat
+// el listener de connexions els crea, el listener de proves els cancel·la
+const timersRonda1 = new Map<string, ReturnType<typeof setTimeout>>()
+
 // comprova la StatusList W3C — retorna true si la credencial és vàlida (bit == 0)
 async function verificarRevocacio(revocationIndex: number): Promise<boolean> {
   try {
@@ -124,6 +128,18 @@ function proofRequestRonda1(connectionId: string) {
   }
 }
 
+// tipus locals per a les proof requests AnonCreds — eviten Record<string, any>
+interface AtributDemanat {
+  name: string
+  restrictions: Array<{ cred_def_id: string }>
+}
+interface PredicatDemanat {
+  name: string
+  p_type: '>=' | '<=' | '>' | '<'
+  p_value: number
+  restrictions: Array<{ cred_def_id: string }>
+}
+
 // ronda 2: construeix la ProofRequest dinàmicament segons el que diu la OT
 // si riscos inclou 'ATEX' → demana zona i nivell_atex amb predicat d'expiració
 // si certificacions inclou 'soldador' → demana proces i norma amb predicat d'expiració
@@ -132,8 +148,8 @@ function proofRequestRonda2(
   riscos: string,
   certificacions: string
 ) {
-  const atributs: Record<string, any> = {}
-  const predicats: Record<string, any> = {}
+  const atributs: Record<string, AtributDemanat> = {}
+  const predicats: Record<string, PredicatDemanat> = {}
   const epoch = avuiEnEpoch()
 
   if (riscos.toLowerCase().includes('atex')) {
@@ -210,7 +226,6 @@ const main = async () => {
     { port: PORT_VERIFICADOR, endpoints: [endpointPublic] }
   )
   await verificador.initialize()
-  const timersRonda1 = new Map<string, ReturnType<typeof setTimeout>>()
   console.log(`[ok] Agent inicialitzat. Escoltant al port ${PORT_VERIFICADOR}.`)
   console.log(`[ok] Endpoint públic: ${endpointPublic}\n`)
 
@@ -239,10 +254,13 @@ const main = async () => {
         const attrs: Record<string, string> = {}
         try {
           const dadesProva = await verificador.proofs.getFormatData(proofRecord.id)
+          // l'estructura interna d'AnonCreds és { raw: string, encoded: string }
+          // el tipat de Credo en aquest punt és opac, definim la forma mínima que usam
+          type AttrRevelat = { raw: string; encoded: string }
           const attrsRevelats =
-            dadesProva.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}
+            (dadesProva.presentation?.anoncreds?.requested_proof?.revealed_attrs ?? {}) as Record<string, AttrRevelat>
           for (const [k, v] of Object.entries(attrsRevelats)) {
-            attrs[k] = (v as any).raw
+            attrs[k] = v.raw
           }
         } catch (e) {
           console.warn('[warn] no s\'han pogut extreure atributs de la prova:', e)
