@@ -166,6 +166,25 @@
         .check-badge.active { background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent-dim); }
         .check-badge.pending { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
 
+        .btn-danger { background: transparent; color: var(--warn); border: 1px solid var(--warn); }
+        .btn-danger:hover { background: var(--warn-glow); }
+        .btn-restore { background: transparent; color: var(--ok); border: 1px solid var(--ok); }
+        .btn-restore:hover { background: var(--ok-glow); }
+
+        .ot-operari { margin-bottom: 16px; }
+        .ot-operari-nom { font-family: var(--sans); font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .ot-operari-nom .op-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+        .ot-list { display: flex; flex-direction: column; gap: 6px; }
+        .ot-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; }
+        .ot-row.revocada { border-left: 3px solid var(--warn); opacity: 0.8; }
+        .ot-info { display: flex; flex-direction: column; gap: 2px; }
+        .ot-id { font-family: var(--mono); font-size: 13px; color: var(--text); }
+        .ot-meta { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+        .ot-estat { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+        .ot-estat.ok { color: var(--ok); }
+        .ot-estat.err { color: var(--warn); }
+        .ot-empty { font-family: var(--mono); font-size: 13px; color: var(--text-dim); padding: 8px 0; }
+
         #btn-emetre { margin-top: 24px; width: 100%; padding: 13px 24px; font-family: var(--sans); font-weight: 700; font-size: 16px; color: #fff; background: var(--accent); border: none; border-radius: var(--r); cursor: pointer; transition: background var(--ease), box-shadow var(--ease); }
         #btn-emetre:hover { background: #15407a; box-shadow: 0 2px 8px rgba(26,79,138,.3); }
         #btn-emetre:active { transform: scale(.99); }
@@ -294,6 +313,13 @@
         </div>
 
         <div id="log"></div>
+
+        <!-- 04: gestió de revocació -->
+        <div class="slabel" style="margin-top:32px">04 · Gestió de revocació d'OTs</div>
+        <div class="card" id="card-revocacio">
+            <div id="ots-estat-list"><span class="ot-empty">Carregant…</span></div>
+        </div>
+
     </div>
 
     <div id="toast"><span id="ti"></span><span id="tm"></span></div>
@@ -344,8 +370,17 @@
                     <span class="op-name">${op.nom}</span>
                     <span class="op-connid">${op.connectionId}</span>
                     <span class="op-check">✓</span>
+                    <button class="btn-sm btn-danger btn-eliminar" title="Eliminar operari">✕</button>
                 `
-                item.addEventListener('click', () => seleccionarOp(op))
+                item.querySelector('.op-dot, .op-name, .op-connid, .op-check').parentElement
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('btn-eliminar')) return
+                    seleccionarOp(op)
+                })
+                item.querySelector('.btn-eliminar').addEventListener('click', (e) => {
+                    e.stopPropagation()
+                    eliminarOperari(op.connectionId, op.nom)
+                })
                 container.appendChild(item)
             })
         }
@@ -478,6 +513,86 @@
             }
         })
 
+        async function eliminarOperari(connectionId, nom) {
+            if (!confirm(`Eliminar operari "${nom}"?\nHaureu de re-escanejar el QR per tornar a connectar-lo.`)) return
+            try {
+                const r = await fetch(`/api/operaris/${connectionId}`, { method: 'DELETE' })
+                const data = await r.json()
+                if (!r.ok) throw new Error(data.error)
+                toast(`Operari "${nom}" eliminat`, 'ok')
+                afegirLog(`Eliminat: ${nom}`, 'ok')
+                if (operariSeleccionat?.connectionId === connectionId) {
+                    operariSeleccionat = null
+                    document.getElementById('selected-display').className = 'selected-display'
+                    document.getElementById('selected-display').innerHTML = '<span>Operari:</span><span>— cap seleccionat —</span>'
+                    comprovarBoto()
+                }
+                await Promise.all([carregarOperaris(), carregarOtsEstat()])
+            } catch (err) {
+                toast(`Error: ${err.message}`, 'err')
+            }
+        }
+
+        async function toggleRevocacio(idOrdre, revocada) {
+            const endpoint = revocada ? '/api/restaurar' : '/api/revocar'
+            try {
+                const r = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_ordre: idOrdre }),
+                })
+                const data = await r.json()
+                if (!r.ok) throw new Error(data.error)
+                const accio = revocada ? 'restaurada' : 'revocada'
+                toast(`OT ${idOrdre} ${accio} ✓`, revocada ? 'ok' : 'err')
+                afegirLog(`OT ${accio}: ${idOrdre}`, revocada ? 'ok' : 'err')
+                await carregarOtsEstat()
+            } catch (err) {
+                toast(`Error: ${err.message}`, 'err')
+            }
+        }
+
+        async function carregarOtsEstat() {
+            try {
+                const r = await fetch('/api/ots-estat')
+                const operaris = await r.json()
+                const container = document.getElementById('ots-estat-list')
+
+                const ambOts = operaris.filter(op => op.ots.length > 0)
+                if (!ambOts.length) {
+                    container.innerHTML = '<span class="ot-empty">Encara no s\'han emès OTs.</span>'
+                    return
+                }
+
+                container.innerHTML = ''
+                ambOts.forEach(op => {
+                    const bloc = document.createElement('div')
+                    bloc.className = 'ot-operari'
+                    const otsHtml = op.ots.map(ot => {
+                        const data = new Date(ot.emesaEn).toLocaleString('ca-ES', { hour12: false })
+                        const btnLabel = ot.revocada ? 'Restaurar' : 'Revocar'
+                        const btnClass = ot.revocada ? 'btn-sm btn-restore' : 'btn-sm btn-danger'
+                        return `
+                            <div class="ot-row ${ot.revocada ? 'revocada' : ''}">
+                                <div class="ot-info">
+                                    <span class="ot-id">${ot.id}</span>
+                                    <span class="ot-meta">emesa: ${data} · índex: ${ot.revocation_index}</span>
+                                </div>
+                                <span class="ot-estat ${ot.revocada ? 'err' : 'ok'}">${ot.revocada ? 'REVOCADA' : 'VÀLIDA'}</span>
+                                <button class="btn-sm ${ot.revocada ? 'btn-restore' : 'btn-danger'}"
+                                        onclick="toggleRevocacio('${ot.id}', ${ot.revocada})">
+                                    ${btnLabel}
+                                </button>
+                            </div>`
+                    }).join('')
+                    bloc.innerHTML = `
+                        <div class="ot-operari-nom"><div class="op-dot"></div>${op.nom}</div>
+                        <div class="ot-list">${otsHtml}</div>`
+                    container.appendChild(bloc)
+                })
+            } catch {}
+        }
+
         // inicialització
         document.getElementById('data').value = new Date().toISOString().split('T')[0]
         document.getElementById('preview-id').textContent = `ORD-${Date.now()}`
@@ -486,7 +601,8 @@
         )
         carregarOperaris()
         carregarPendents()
-        setInterval(() => { carregarPendents(); carregarOperaris() }, 8000)
+        carregarOtsEstat()
+        setInterval(() => { carregarPendents(); carregarOperaris(); carregarOtsEstat() }, 8000)
     </script>
 </body>
 

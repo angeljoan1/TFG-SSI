@@ -15,7 +15,7 @@ import express, { Request, Response } from 'express'
 import path from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { CRED_DEF_OT, PORT_OT, ENDPOINT_OT, ENDPOINT_OT_WEB } from './configuracio'
-import { carregarOGenerarClau, construirPayload, signarStatusList, revocarCredencial, restaurarCredencial } from './statusList'
+import { carregarOGenerarClau, construirPayload, signarStatusList, revocarCredencial, restaurarCredencial, llegirBit } from './statusList'
 
 const endpointPublic = ENDPOINT_OT
 
@@ -227,6 +227,40 @@ const main = async () => {
       console.error('[api error]', error)
       res.status(500).json({ error: 'error en emetre la credencial' })
     }
+  })
+
+  // eliminar operari — neteja connexions obsoletes per poder re-escanejar net
+  app.delete('/api/operaris/:connectionId', (req: Request, res: Response) => {
+    const { connectionId } = req.params
+    const llista = llegirOperaris()
+    const idx = llista.findIndex(o => o.connectionId === connectionId)
+    if (idx === -1) {
+      res.status(404).json({ error: 'operari no trobat' })
+      return
+    }
+    const nom = llista[idx].nom
+    llista.splice(idx, 1)
+    guardarOperaris(llista)
+    pendents.delete(connectionId)
+    console.log(`[directori] operari eliminat: ${nom} → ${connectionId}`)
+    res.json({ ok: true, nom })
+  })
+
+  // estat de revocació de totes les OT — per al panel de gestió
+  app.get('/api/ots-estat', (_req: Request, res: Response) => {
+    const llista = llegirOperaris()
+    const resultat = llista.map(op => ({
+      nom:          op.nom,
+      connectionId: op.connectionId,
+      registratEn:  op.registratEn,
+      ots: op.ot_ids.map(ot => ({
+        id:               ot.id,
+        revocation_index: ot.revocation_index,
+        emesaEn:          ot.emesaEn,
+        revocada:         llegirBit(ot.revocation_index) === 1,
+      })),
+    }))
+    res.json(resultat)
   })
 
   // ─── Endpoints de revocació ───────────────────────────────────────────────
