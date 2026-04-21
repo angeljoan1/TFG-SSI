@@ -63,7 +63,7 @@ type ModulsAgent = {
 
 export type AgentIndustrial = Agent<ModulsAgent>
 
-// caché del genesis — només el descarregam una vegada per sessió
+// caché del genesis només el descarregam una vegada per sessió
 // si el tornam a demanar cada vegada i BCovrin va lent, els arrencades tarden molt
 let genesisEnCaché: string | null = null
 
@@ -154,7 +154,7 @@ export class FabricaAgents {
         }),
 
         proofs: new ProofsModule({
-          // igual que les credencials — BC Wallet mostra confirmació a l'usuari
+          // igual que les credencials BC Wallet mostra confirmació a l'usuari
           autoAcceptProofs: AutoAcceptProof.ContentApproved,
           proofProtocols: [protocolProva],
         }),
