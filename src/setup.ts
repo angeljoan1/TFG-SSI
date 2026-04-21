@@ -90,7 +90,7 @@ const main = async () => {
     }
 
     // ─── 2. Schema v1.2.0 ────────────────────────────────────────────────────
-    // versió nova perquè afegim 'revocation_index' per a la revocació W3C Bitstring
+    // versió 1.2 perquè afegim 'revocation_index' per a la revocació Bitstring
     console.log('\n--> [2/4] Registrant schema v1.2.0...')
     const nomSchema = 'Ordre-Manteniment'
     const versioSchema = '1.2.0'
@@ -118,6 +118,7 @@ const main = async () => {
     }
 
     // ─── 3. Esperar que la xarxa indexi l'schema ─────────────────────────────
+    // esperam perquè al ser una testnet pública es nodes no sincronitzen instantàniament, espera de 15*4s
     console.log('\n--> [3/4] Esperant que la xarxa indexi el schema...')
     let schemaDisponible = false
     let intents = 0
