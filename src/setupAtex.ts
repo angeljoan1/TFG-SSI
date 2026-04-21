@@ -1,7 +1,7 @@
 // arxiu: src/setupAtex.ts
 // registra la infraestructura ATEX a BCovrin (DID + Schema + CredDef)
 // executa UNA VEGADA abans d'usar issuerAtex.ts
-// és idempotent — si ja existeix tot, no fa res malament
+// és idempotent si ja existeix tot, no fa res malament
 
 import { FabricaAgents } from './config/FabricaAgents'
 import { TypedArrayEncoder, KeyType } from '@credo-ts/core'
@@ -11,7 +11,7 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const main = async () => {
   console.log('================================================================')
-  console.log('--> SETUP ATEX — Registre d\'identitat i schema a BCovrin')
+  console.log('--> SETUP ATEX  Registre d\'identitat i schema a BCovrin')
   console.log('================================================================\n')
 
   const agent = await FabricaAgents.crear('Servidor-ATEX-V1', 'clave-maestra-ATEX-V1')
@@ -106,7 +106,7 @@ const main = async () => {
         intents++
       }
     }
-    if (!schemaDisponible) throw new Error('La xarxa no ha indexat el schema — prova-ho més tard.')
+    if (!schemaDisponible) throw new Error('La xarxa no ha indexat el schema  prova-ho més tard.')
 
     console.log('\n--> [4/4] Registrant CredDef ATEX...')
     const resultatCredDef = await agent.modules.anoncreds.registerCredentialDefinition({
