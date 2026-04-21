@@ -17,23 +17,23 @@ const endpointPublic = ENDPOINT_ATEX
 // data d'expiració en unix timestamp (segons)
 // el verificador farà un predicat >= avui per comprovar-ho criptogràficament
 // 2026-12-31 en epoch
-// un any a partir d'avui — evita que la credencial caduqui si la demo es fa l'any que ve
+// un any a partir d'avui evita que la credencial caduqui si la demo es fa l'any que ve
 const DATA_EXPIRACIO_ATEX = Math.floor((Date.now() + 365 * 24 * 3600 * 1000) / 1000).toString()
 
-// imprimeix el QR al terminal — si no hi ha el paquet, imprimeix la URL i prou
+// imprimeix el QR al terminal si no hi ha el paquet, imprimeix la URL i prou
 async function imprimirQR(url: string): Promise<void> {
   try {
     const qr = await import('qrcode-terminal')
     qr.default.generate(url, { small: true })
   } catch {
-    console.log('[qr no disponible — escaneja la URL directament]')
+    console.log('[qr no disponible escaneja la URL directament]')
   }
   console.log(`\n📲 URL d'invitació:\n${url}\n`)
 }
 
 const main = async () => {
   console.log('================================================================')
-  console.log('  EMISSOR ATEX — Directiva de Zones Explosives')
+  console.log('  EMISSOR ATEX Directiva de Zones Explosives')
   console.log('================================================================\n')
 
   console.log(`--> [1/3] Arrencant agent ATEX al port ${PORT_ATEX}...`)
@@ -77,7 +77,7 @@ const main = async () => {
                   { name: 'treballador',      value: 'Operari-Demo' },
                   { name: 'zona',             value: 'Zona-1-Gas' },
                   { name: 'nivell_atex',      value: 'II 2G Ex ia IIC T4' },
-                  // epoch en string — el verificador fa predicat >= avui
+                  // epoch en string el verificador fa predicat >= avui
                   { name: 'data_expiracio',   value: DATA_EXPIRACIO_ATEX },
                 ],
               },
