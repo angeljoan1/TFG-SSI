@@ -1,7 +1,7 @@
 // arxiu: src/issuerSoldador.ts
 // emissor de l'homologació de soldador
 // executa: npx tsx src/issuerSoldador.ts
-// normalment s'emet a casa abans de la demo — no cal tenir-lo encès a la defensa
+// normalment s'emet a casa abans de la demo no cal tenir-lo encès a la defensa
 
 import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
 import {
@@ -16,9 +16,9 @@ import { CRED_DEF_SOLDADOR, PORT_SOLDADOR, ENDPOINT_SOLDADOR } from './configura
 
 const endpointPublic = ENDPOINT_SOLDADOR
 
-// data d'expiració en unix timestamp (segons) — el verificador fa predicat >= avui
+// data d'expiració en unix timestamp (segons) el verificador fa predicat >= avui
 // 2026-12-31 en epoch
-// un any a partir d'avui — evita que la credencial caduqui si la demo es fa l'any que ve
+// un any a partir d'avui evita que la credencial caduqui si la demo es fa l'any que ve
 const DATA_EXPIRACIO_SOLDADOR = Math.floor((Date.now() + 365 * 24 * 3600 * 1000) / 1000).toString()
 
 async function imprimirQR(url: string): Promise<void> {
@@ -26,14 +26,14 @@ async function imprimirQR(url: string): Promise<void> {
     const qr = await import('qrcode-terminal')
     qr.default.generate(url, { small: true })
   } catch {
-    console.log('[qr no disponible — escaneja la URL directament]')
+    console.log('[qr no disponible escaneja la URL directament]')
   }
   console.log(`\n📲 URL d'invitació:\n${url}\n`)
 }
 
 const main = async () => {
   console.log('================================================================')
-  console.log('  EMISSOR SOLDADOR — Escola d\'Homologació de Soldadors')
+  console.log('  EMISSOR SOLDADOR Escola d\'Homologació de Soldadors')
   console.log('================================================================\n')
 
   console.log(`--> [1/3] Arrencant agent Soldador al port ${PORT_SOLDADOR}...`)
@@ -77,7 +77,7 @@ const main = async () => {
                   { name: 'treballador',    value: 'Operari-Demo' },
                   { name: 'proces',         value: 'SMAW' },
                   { name: 'norma',          value: 'EN ISO 9606-1' },
-                  // epoch en string — el verificador fa predicat >= avui
+                  // epoch en string el verificador fa predicat >= avui
                   { name: 'data_expiracio', value: DATA_EXPIRACIO_SOLDADOR },
                 ],
               },
