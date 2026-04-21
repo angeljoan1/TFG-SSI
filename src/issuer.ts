@@ -1,5 +1,5 @@
 // arxiu: src/issuer.ts
-// emissor de les Ordres de Treball (OT) — corre al portàtil A
+// emissor de les Ordres de Treball (OT) corre al portàtil A
 // executa: npx tsx src/issuer.ts
 
 import { FabricaAgents, AgentIndustrial } from './config/FabricaAgents'
@@ -19,20 +19,20 @@ import { carregarOGenerarClau, construirPayload, signarStatusList, revocarCreden
 
 const endpointPublic = ENDPOINT_OT
 
-// clau de signatura Ed25519 — es genera una vegada i es reutilitza
+// clau de signatura Ed25519 es genera una vegada i es reutilitza
 const clauSignatura = carregarOGenerarClau()
 
 // fitxer on guardam els operaris registrats
 const FITXER_OPERARIS = path.join(process.cwd(), 'operaris.json')
 
-// cada OT té el seu propi índex al bitstring — un operari pot tenir-ne moltes
+// cada OT té el seu propi índex al bitstring un operari pot tenir-ne moltes
 interface OTEmesa {
   id:               string
   revocation_index: number
   emesaEn:          string
 }
 
-// l'operari ja no té revocation_index propi — cada OT el té
+// l'operari ja no té revocation_index propi cada OT el té
 interface Operari {
   nom:          string
   connectionId: string
@@ -49,7 +49,7 @@ function guardarOperaris(llista: Operari[]): void {
   writeFileSync(FITXER_OPERARIS, JSON.stringify(llista, null, 2), 'utf-8')
 }
 
-// retorna el següent índex global disponible — busca el màxim entre totes les OT de tots els operaris
+// retorna el següent índex global disponible busca el màxim entre totes les OT de tots els operaris
 function propIndexRevocacio(): number {
   const llista = llegirOperaris()
   const totsEls = llista.flatMap(o => o.ot_ids.map(ot => ot.revocation_index))
@@ -62,14 +62,14 @@ async function imprimirQR(url: string): Promise<void> {
     const qr = await import('qrcode-terminal')
     qr.default.generate(url, { small: true })
   } catch {
-    console.log('[qr no disponible — escaneja la URL directament]')
+    console.log('[qr no disponible escaneja la URL directament]')
   }
   console.log(`\n📲 URL d'invitació:\n${url}\n`)
 }
 
 const main = async () => {
   console.log('================================================================')
-  console.log('  EMISSOR OT — Servidor d\'Ordres de Treball')
+  console.log('  EMISSOR OT Servidor d\'Ordres de Treball')
   console.log('================================================================\n')
 
   // ─── 1. Arrencar agent emissor ────────────────────────────────────────────
@@ -140,7 +140,7 @@ const main = async () => {
     res.json([...pendents])
   })
 
-  // registrar operari — ja NO s'assigna revocation_index aquí
+  // registrar operari ja NO s'assigna revocation_index aquí
   app.post('/api/operaris', (req: Request, res: Response) => {
     const { connectionId, nom } = req.body as { connectionId: string; nom: string }
     if (!connectionId || !nom) {
@@ -164,7 +164,7 @@ const main = async () => {
     res.json({ ok: true })
   })
 
-  // emetre OT — s'assigna un índex de revocació únic per aquesta OT
+  // emetre OT s'assigna un índex de revocació únic per aquesta OT
   app.post('/api/emetre', async (req: Request, res: Response) => {
     const { connectionId, equip, tasca, data, riscos, certificacions } = req.body as {
       connectionId: string
@@ -231,7 +231,7 @@ const main = async () => {
 
   // ─── Endpoints de revocació ───────────────────────────────────────────────
 
-  // W3C BitstringStatusList — el verificador fa fetch aquí
+  // W3C BitstringStatusList el verificador fa fetch aquí
   app.get('/status-list', (_req: Request, res: Response) => {
     const payload = construirPayload(ENDPOINT_OT_WEB)
     const signat  = signarStatusList(payload, clauSignatura.privateKeyPem)
@@ -245,7 +245,7 @@ const main = async () => {
     res.json({ publicKeyPem: clauSignatura.publicKeyPem })
   })
 
-  // revocar una OT per id_ordre — cerca l'índex i activa el bit corresponent
+  // revocar una OT per id_ordre cerca l'índex i activa el bit corresponent
   app.post('/api/revocar', (req: Request, res: Response) => {
     const { id_ordre } = req.body as { id_ordre: string }
     if (!id_ordre) {
@@ -269,7 +269,7 @@ const main = async () => {
     }
     try {
       revocarCredencial(indexTrobat)
-      console.log(`[api] OT revocada — id: ${id_ordre} | operari: ${nomOperari} | índex: ${indexTrobat}`)
+      console.log(`[api] OT revocada id: ${id_ordre} | operari: ${nomOperari} | índex: ${indexTrobat}`)
       res.json({ ok: true, id_ordre, revocation_index: indexTrobat, operari: nomOperari })
     } catch (error) {
       res.status(400).json({ error: String(error) })
@@ -295,7 +295,7 @@ const main = async () => {
     }
     try {
       restaurarCredencial(indexTrobat)
-      console.log(`[api] OT restaurada — id: ${id_ordre} | índex: ${indexTrobat}`)
+      console.log(`[api] OT restaurada id: ${id_ordre} | índex: ${indexTrobat}`)
       res.json({ ok: true, id_ordre, revocation_index: indexTrobat })
     } catch (error) {
       res.status(400).json({ error: String(error) })
