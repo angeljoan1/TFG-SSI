@@ -1,5 +1,5 @@
 // arxiu: src/verificador.ts
-// punt de control d'accés SSI — corre al portàtil B
+// punt de control d'accés SSI corre al portàtil B
 // executa: npx tsx src/verificador.ts
 // 
 // flux de verificació en dues rondes:
@@ -25,7 +25,7 @@ import { CRED_DEF_OT, CRED_DEF_ATEX, CRED_DEF_SOLDADOR, PORT_VERIFICADOR, ENDPOI
 
 const endpointPublic = ENDPOINT_VERIFICADOR
 
-// epoch d'avui a mitjanit (en segons) — per comparar amb data_expiracio de les credencials
+// epoch d'avui a mitjanit (en segons) per comparar amb data_expiracio de les credencials
 function avuiEnEpoch(): number {
   const avui = new Date()
   avui.setHours(0, 0, 0, 0)
@@ -37,7 +37,7 @@ async function imprimirQR(url: string): Promise<void> {
     const qr = await import('qrcode-terminal')
     qr.default.generate(url, { small: true })
   } catch {
-    console.log('[qr no disponible — escaneja la URL directament]')
+    console.log('[qr no disponible escaneja la URL directament]')
   }
   console.log(`\n📲 URL d'invitació:\n${url}\n`)
 }
@@ -62,7 +62,7 @@ interface EstatRonda {
 const rondesPendents = new Map<string, EstatRonda>()
 // connectionId → estat de la ronda 1 completada
 
-// comprova la StatusList W3C — retorna true si la credencial és vàlida (bit == 0)
+// comprova la StatusList W3C retorna true si la credencial és vàlida (bit == 0)
 async function verificarRevocacio(revocationIndex: number): Promise<boolean> {
   try {
     const respostaList = await fetch(STATUS_LIST_URL)
@@ -72,18 +72,18 @@ async function verificarRevocacio(revocationIndex: number): Promise<boolean> {
     }
     const signat = await respostaList.json() as StatusListSignat
 
-    // clau pública ancorada a configuracio.ts — no depèn del servidor en temps d'execució
+    // clau pública ancorada a configuracio.ts no depèn del servidor en temps d'execució
     const publicKeyPem = STATUS_LIST_PUBLIC_KEY
 
     // validar signatura
     if (!verificarSignatura(signat, publicKeyPem)) {
-      console.error('[revocació] SIGNATURA INVÀLIDA — possible manipulació de la llista!')
+      console.error('[revocació] SIGNATURA INVÀLIDA possible manipulació de la llista!')
       return false
     }
 
     // rebutjar llistes caducades evita atacs de replay amb captures antigues
     if (new Date(signat.payload.validUntil) < new Date()) {
-      console.error('[revocació] status-list caducada — possible replay attack')
+      console.error('[revocació] status-list caducada possible replay attack')
       return false
     }
 
@@ -137,7 +137,7 @@ function proofRequestRonda2(
   const epoch = avuiEnEpoch()
 
   if (riscos.toLowerCase().includes('atex')) {
-    // revelam zona i nivell — id_cert i treballador no surten del wallet
+    // revelam zona i nivell id_cert i treballador no surten del wallet
     atributs.grup_zona       = { name: 'zona',       restrictions: [{ cred_def_id: CRED_DEF_ATEX }] }
     atributs.grup_nivell_atex = { name: 'nivell_atex', restrictions: [{ cred_def_id: CRED_DEF_ATEX }] }
     // predicat criptogràfic: data_expiracio >= avui (el wallet ho prova sense revelar la data)
@@ -152,7 +152,7 @@ function proofRequestRonda2(
   if (certificacions.toLowerCase().includes('soldador')) {
     atributs.grup_proces = { name: 'proces', restrictions: [{ cred_def_id: CRED_DEF_SOLDADOR }] }
     atributs.grup_norma  = { name: 'norma',  restrictions: [{ cred_def_id: CRED_DEF_SOLDADOR }] }
-    // igual — prova que no ha caducat sense revelar la data exacta
+    // igual prova que no ha caducat sense revelar la data exacta
     predicats.soldador_no_caducat = {
       name: 'data_expiracio',
       p_type: '>=',
@@ -179,7 +179,7 @@ function proofRequestRonda2(
 
 async function regenerarInvitacio(verificador: AgentIndustrial): Promise<void> {
   const nouOob = await verificador.oob.createInvitation({
-    label: 'Control d\'Accés — Planta Industrial',
+    label: 'Control d\'Accés Planta Industrial',
     multiUseInvitation: true,
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
@@ -192,14 +192,14 @@ async function tancarConnexio(verificador: AgentIndustrial, connectionId: string
     await verificador.connections.deleteById(connectionId)
     console.log('[connexió] eliminada, llest per al següent operari')
   } catch {
-    // pot haver estat eliminada ja pel timeout — no és un error greu
+    // pot haver estat eliminada ja pel timeout no és un error greu
   }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const main = async () => {
   console.log('================================================================')
-  console.log('--> VERIFICADOR SSI v2.0 (ZKP dinàmic — dues rondes)')
+  console.log('--> VERIFICADOR SSI v2.0 (ZKP dinàmic dues rondes)')
   console.log('================================================================\n')
 
   // ── 1. Inicialitzar agent verificador ─────────────────────────────────────
@@ -214,7 +214,7 @@ const main = async () => {
   console.log(`[ok] Agent inicialitzat. Escoltant al port ${PORT_VERIFICADOR}.`)
   console.log(`[ok] Endpoint públic: ${endpointPublic}\n`)
 
-  // ── 2. Listener de proves — aquí és on passa tota la màgia ───────────────
+  // ── 2. Listener de proves aquí és on passa tota la màgia ───────────────
   console.log('--> [2/4] Registrant listener de proves ZKP...')
 
   verificador.events.on<ProofStateChangedEvent>(
@@ -256,8 +256,8 @@ const main = async () => {
         if (!rondesPendents.has(connId!)) {
 
           if (!esValida) {
-            // la OT en si no és vàlida — denegam directament
-            console.log('\n❌ ACCÉS DENEGAT — OT invàlida o no presentada')
+            // la OT en si no és vàlida denegam directament
+            console.log('\n❌ ACCÉS DENEGAT OT invàlida o no presentada')
             ultimEsdeveniment = {
               ts: new Date().toISOString(),
               valid: false,
@@ -273,12 +273,12 @@ const main = async () => {
           const avui = new Date().toISOString().split('T')[0]
           const dataOT = attrs['grup_data']?.split('T')[0] ?? ''
           if (dataOT !== avui) {
-            console.log(`\n❌ ACCÉS DENEGAT — OT caducada (data: ${dataOT}, avui: ${avui})`)
+            console.log(`\n❌ ACCÉS DENEGAT OT caducada (data: ${dataOT}, avui: ${avui})`)
             ultimEsdeveniment = {
               ts: new Date().toISOString(),
               valid: false,
               attrs,
-              missing: ['Ordre de Treball caducada — no és del dia d\'avui'],
+              missing: ['Ordre de Treball caducada no és del dia d\'avui'],
             }
             if (connId) await tancarConnexio(verificador, connId)
             await regenerarInvitacio(verificador)
@@ -291,7 +291,7 @@ const main = async () => {
           // ── comprovar revocació W3C (Fase 2) ──────────────────────────────
           const revocationIndex = parseInt(attrs['grup_revocation_index'] ?? '-1', 10)
           if (isNaN(revocationIndex) || revocationIndex < 0) {
-            console.log('\n❌ ACCÉS DENEGAT — OT sense índex de revocació')
+            console.log('\n❌ ACCÉS DENEGAT OT sense índex de revocació')
             ultimEsdeveniment = {
               ts: new Date().toISOString(),
               valid: false,
@@ -305,7 +305,7 @@ const main = async () => {
 
           const otValida = await verificarRevocacio(revocationIndex)
           if (!otValida) {
-            console.log(`\n❌ ACCÉS DENEGAT — OT revocada (índex ${revocationIndex})`)
+            console.log(`\n❌ ACCÉS DENEGAT OT revocada (índex ${revocationIndex})`)
             ultimEsdeveniment = {
               ts: new Date().toISOString(),
               valid: false,
@@ -323,7 +323,7 @@ const main = async () => {
             certificacions.toLowerCase().includes('soldador')
 
           if (!necessitaRonda2) {
-            console.log('\n✅ ACCÉS CONCEDIT — OT vàlida, sense requisits addicionals')
+            console.log('\n✅ ACCÉS CONCEDIT OT vàlida, sense requisits addicionals')
             ultimEsdeveniment = { ts: new Date().toISOString(), valid: true, attrs, missing: [] }
             if (connId) await tancarConnexio(verificador, connId)
             await regenerarInvitacio(verificador)
@@ -343,7 +343,7 @@ const main = async () => {
               if (connId) await tancarConnexio(verificador, connId)
               await regenerarInvitacio(verificador)
             }
-            // si ja no hi és al map, vol dir que la ronda 2 ja ha acabat bé — no fem res
+            // si ja no hi és al map, vol dir que la ronda 2 ja ha acabat bé no fem res
           }, 45_000)
 
           rondesPendents.set(connId!, { attrsOT: attrs, timerId })
@@ -373,7 +373,7 @@ const main = async () => {
         const attrsComplets = { ...estatRonda.attrsOT, ...attrs }
 
         if (esValida) {
-          console.log('\n✅ ACCÉS CONCEDIT — totes les credencials vàlides (ZKP)')
+          console.log('\n✅ ACCÉS CONCEDIT totes les credencials vàlides (ZKP)')
           ultimEsdeveniment = {
             ts: new Date().toISOString(),
             valid: true,
@@ -381,21 +381,21 @@ const main = async () => {
             missing: [],
           }
         } else {
-          console.log('\n❌ ACCÉS DENEGAT — credencials addicionals invàlides o absents')
+          console.log('\n❌ ACCÉS DENEGAT credencials addicionals invàlides o absents')
           // intentam esbrinar quines falten
           const falten: string[] = []
           const revelats = Object.keys(attrs)
           if (estatRonda.attrsOT['grup_riscos']?.toLowerCase().includes('atex')) {
             if (!revelats.includes('grup_zona') || !revelats.includes('grup_nivell_atex'))
-              falten.push('Certificat ATEX — credencial absent')
+              falten.push('Certificat ATEX credencial absent')
             else
-              falten.push('Certificat ATEX — credencial caducada')
+              falten.push('Certificat ATEX credencial caducada')
           }
           if (estatRonda.attrsOT['grup_certificacions']?.toLowerCase().includes('soldador')) {
             if (!revelats.includes('grup_proces') || !revelats.includes('grup_norma'))
-              falten.push('Homologació Soldador — credencial absent')
+              falten.push('Homologació Soldador credencial absent')
             else
-              falten.push('Homologació Soldador — credencial caducada')
+              falten.push('Homologació Soldador credencial caducada')
           }
           ultimEsdeveniment = {
             ts: new Date().toISOString(),
@@ -413,7 +413,7 @@ const main = async () => {
       if (proofRecord.state === ProofState.Declined) {
         console.log('\n[prova] l\'operari ha rebutjat presentar la prova')
         console.log('        accés denegat\n')
-        // no netejam la connexió aquí — pot ser que sigui el Decline de la ronda 1
+        // no netejam la connexió aquí pot ser que sigui el Decline de la ronda 1
         // i volem que pugui tornar a intentar-ho sense desconnectar-se
       }
     }
@@ -421,7 +421,7 @@ const main = async () => {
 
   console.log('[ok] Listener actiu.\n')
 
-  // ── 3. Servidor Express — API per al panel web ────────────────────────────
+  // ── 3. Servidor Express API per al panel web ────────────────────────────
   const app = express()
   app.use(express.static(path.join(__dirname, '..', 'public-verifier')))
 
@@ -442,7 +442,7 @@ const main = async () => {
 
   // ── 4. Generar invitació OOB inicial ──────────────────────────────────────
   const oobInicial = await verificador.oob.createInvitation({
-    label: 'Control d\'Accés — Planta Industrial',
+    label: 'Control d\'Accés Planta Industrial',
     multiUseInvitation: true,
     handshakeProtocols: [HandshakeProtocol.DidExchange],
   })
@@ -450,7 +450,7 @@ const main = async () => {
   await imprimirQR(urlInvitacio)
 
   
-  // ── 5. Listener de connexions — quan l'operari escaneja el QR ────────────
+  // ── 5. Listener de connexions quan l'operari escaneja el QR ────────────
   verificador.events.on<ConnectionStateChangedEvent>(
     ConnectionEventTypes.ConnectionStateChanged,
     async ({ payload }) => {
@@ -471,7 +471,7 @@ const main = async () => {
       }
 
       // timeout ronda 1: si en 30s no arriba la OT, netejam
-      // compte — si la ronda 1 acaba bé, el seu Done ja gestiona tot
+      // compte si la ronda 1 acaba bé, el seu Done ja gestiona tot
       // aquest timeout és per si l'operari no fa res (se'n va sense presentar)
       const timerId = setTimeout(async () => {
         // si ja hi ha una ronda 2 pendent per aquesta connexió, no fem res
@@ -486,7 +486,7 @@ const main = async () => {
           await tancarConnexio(verificador, connexio.id)
           await regenerarInvitacio(verificador)
         } catch {
-          // la connexió ja no existeix — algú ja l'ha tancada, no fem res
+          // la connexió ja no existeix algú ja l'ha tancada, no fem res
         }
       }, 30_000)
 
