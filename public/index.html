@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ca">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,9 +30,7 @@
             --r: 6px;
             --ease: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             min-height: 100vh;
             background: var(--bg);
@@ -41,15 +38,12 @@
             font-family: var(--sans);
             font-size: 15px;
         }
-
         .shell { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
-
         header {
             border-bottom: 1px solid var(--border);
             padding-bottom: 24px;
             margin-bottom: 36px;
         }
-
         .badge {
             display: inline-block;
             font-family: var(--sans);
@@ -64,11 +58,9 @@
             text-transform: uppercase;
             font-weight: 600;
         }
-
         header h1 { font-family: var(--sans); font-weight: 700; font-size: clamp(22px, 4vw, 32px); color: var(--text); line-height: 1.1; }
         header h1 span { color: var(--accent); }
         header p { margin-top: 6px; color: var(--text-dim); font-family: var(--mono); font-size: 13px; letter-spacing: .05em; }
-
         .slabel {
             font-family: var(--mono);
             font-size: 11px;
@@ -81,7 +73,6 @@
             gap: 10px;
         }
         .slabel::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -91,7 +82,6 @@
             box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
         .card.warn-card { border-left: 3px solid var(--warn); }
-
         .alert-banner {
             display: none;
             align-items: center;
@@ -108,10 +98,8 @@
         }
         .alert-banner.visible { display: flex; }
         .alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
-
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
-
         .pending-list { display: flex; flex-direction: column; gap: 8px; }
         .pending-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; }
         .pending-connid { font-family: var(--mono); font-size: 12px; color: var(--text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -119,16 +107,13 @@
         .pending-form input { background: var(--bg); border: 1px solid var(--border-hi); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 7px 12px; outline: none; width: 180px; transition: var(--ease); }
         .pending-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
         .pending-form input::placeholder { color: var(--text-dim); }
-
         .btn-sm { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 7px 14px; border-radius: var(--r); border: none; cursor: pointer; transition: var(--ease); white-space: nowrap; }
         .btn-primary { background: var(--accent); color: var(--bg); font-weight: 700; }
         .btn-primary:hover { background: #15407a; }
         .btn-primary:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
-
         #op-search { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 10px 14px; outline: none; transition: var(--ease); margin-bottom: 10px; }
         #op-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
         #op-search::placeholder { color: var(--text-dim); }
-
         #op-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
         .op-item { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; cursor: pointer; transition: var(--ease); }
         .op-item:hover { border-color: var(--accent-dim); background: var(--accent-glow); }
@@ -139,21 +124,16 @@
         .op-check { color: var(--accent); opacity: 0; transition: opacity 150ms; font-size: 16px; }
         .op-item.selected .op-check { opacity: 1; }
         .op-empty { font-family: var(--mono); font-size: 13px; color: var(--text-dim); padding: 10px 0; }
-
         .selected-display { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 14px; font-family: var(--mono); font-size: 13px; color: var(--text-dim); margin-bottom: 20px; min-height: 42px; display: flex; align-items: center; gap: 10px; }
         .selected-display.active { border-color: var(--accent-dim); color: var(--accent); }
         .sd-name { color: var(--text); font-weight: 600; font-family: var(--sans); }
-
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .fg { display: flex; flex-direction: column; gap: 6px; }
         .fg.full { grid-column: 1 / -1; }
-
         label { font-family: var(--mono); font-size: 11px; letter-spacing: .15em; color: var(--text-mid); text-transform: uppercase; }
-
         input[type=text], input[type=date] { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 10px 14px; outline: none; transition: var(--ease); width: 100%; }
         input[type=text]:focus, input[type=date]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
         input::placeholder { color: var(--text-dim); }
-
         /* checkboxes de riscos i certificacions */
         .check-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
         .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: var(--ease); user-select: none; }
@@ -165,43 +145,51 @@
         .check-badge { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
         .check-badge.active { background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent-dim); }
         .check-badge.pending { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
-
         #btn-emetre { margin-top: 24px; width: 100%; padding: 13px 24px; font-family: var(--sans); font-weight: 700; font-size: 16px; color: #fff; background: var(--accent); border: none; border-radius: var(--r); cursor: pointer; transition: background var(--ease), box-shadow var(--ease); }
         #btn-emetre:hover { background: #15407a; box-shadow: 0 2px 8px rgba(26,79,138,.3); }
         #btn-emetre:active { transform: scale(.99); }
         #btn-emetre:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
-
         #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(130%); min-width: 300px; max-width: 90vw; padding: 14px 20px; border-radius: var(--r); font-family: var(--mono); font-size: 13px; display: flex; align-items: center; gap: 10px; transition: transform 350ms cubic-bezier(.34,1.56,.64,1); z-index: 999; pointer-events: none; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         #toast.ok { background: #f0faf5; border: 1px solid #1a7a4a; color: #1a7a4a; }
         #toast.err { background: #fdf2f2; border: 1px solid #c0392b; color: #c0392b; }
-
         #log { margin-top: 28px; font-family: var(--mono); font-size: 12px; color: var(--text-dim); max-height: 120px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 3px; }
         .le .ts { color: var(--accent-dim); margin-right: 8px; }
         .le.ok .msg { color: var(--ok); }
         .le.err .msg { color: var(--warn); }
-
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--surface); }
         ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+        /* revocació */
+        .ot-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+        .ot-row:last-child { border-bottom: none; }
+        .ot-id { flex: 1; color: var(--text-mid); }
+        .ot-op { color: var(--text-dim); font-size: 11px; min-width: 80px; }
+        .ot-idx { color: var(--text-dim); font-size: 10px; min-width: 60px; }
+        .ot-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; min-width: 70px; text-align: center; }
+        .ot-status.valida { background: var(--ok-glow); color: var(--ok); border: 1px solid #1a7a4a44; }
+        .ot-status.revocada { background: var(--warn-glow); color: var(--warn); border: 1px solid #c0392b44; }
+        .btn-rev { font-family: var(--mono); font-size: 11px; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer; transition: var(--ease); }
+        .btn-rev.revocar { background: var(--warn-glow); color: var(--warn); border: 1px solid #c0392b44; }
+        .btn-rev.revocar:hover { background: #fdf2f2; }
+        .btn-rev.restaurar { background: var(--ok-glow); color: var(--ok); border: 1px solid #1a7a4a44; }
+        .btn-rev.restaurar:hover { background: #f0faf5; }
+        .ot-empty { font-family: var(--mono); font-size: 12px; color: var(--text-dim); padding: 12px; text-align: center; }
     </style>
 </head>
-
 <body>
     <div class="shell">
-
         <header>
             <div class="badge">Sistema SSI Industrial · TFG</div>
             <h1>Oficina <span>Tècnica</span></h1>
             <p>// Emissió d'Ordres de Treball · Protocol AnonCreds v2.0</p>
         </header>
-
         <!-- alerta connexions noves -->
         <div class="alert-banner" id="alert-pendent">
             <div class="alert-dot"></div>
             <span id="alert-text">Nova connexió pendent de registre</span>
         </div>
-
         <!-- 01: connexions noves sense nom -->
         <div id="seccio-pendents" style="display:none">
             <div class="slabel">01 · Nous operaris — pendents de registre</div>
@@ -209,14 +197,12 @@
                 <div class="pending-list" id="llista-pendents"></div>
             </div>
         </div>
-
         <!-- 02: selecció d'operari -->
         <div class="slabel">02 · Seleccionar operari</div>
         <div class="card">
             <input type="text" id="op-search" placeholder="Cercar per nom…" autocomplete="off" />
             <div id="op-list"><span class="op-empty">Carregant directori…</span></div>
         </div>
-
         <!-- 03: dades de la OT -->
         <div class="slabel">03 · Dades de l'Ordre de Treball</div>
         <div class="card">
@@ -244,7 +230,6 @@
                         <span style="color:var(--accent-dim)" id="preview-id">ORD-···</span>
                     </div>
                 </div>
-
                 <!-- riscos requerits -->
                 <div class="fg full">
                     <label>Riscos de la tasca</label>
@@ -266,7 +251,6 @@
                         </label>
                     </div>
                 </div>
-
                 <!-- certificacions requerides -->
                 <div class="fg full">
                     <label>Certificacions requerides</label>
@@ -288,19 +272,23 @@
                         </label>
                     </div>
                 </div>
-
             </div>
             <button id="btn-emetre" disabled>Emetre Ordre de Treball →</button>
         </div>
 
+        <!-- 04: revocació d'OT -->
+        <div class="slabel">04 · Revocar / Restaurar Ordres de Treball</div>
+        <div class="card">
+            <div id="ot-list"><span class="ot-empty">Carregant ordres…</span></div>
+        </div>
+
         <div id="log"></div>
     </div>
-
     <div id="toast"><span id="ti"></span><span id="tm"></span></div>
-
     <script>
         let operariSeleccionat = null
         let totsElsOperaris = []
+        const revocats = new Set()
 
         const ara = () => new Date().toLocaleTimeString('ca-ES', { hour12: false })
 
@@ -350,6 +338,74 @@
             })
         }
 
+        function renderOTs(operaris) {
+            const container = document.getElementById('ot-list')
+            const totes = operaris.flatMap(op =>
+                (op.ot_ids || []).map(ot => ({ ...ot, nomOperari: op.nom }))
+            ).sort((a, b) => b.emesaEn.localeCompare(a.emesaEn))
+
+            if (!totes.length) {
+                container.innerHTML = '<span class="ot-empty">Cap OT emesa encara.</span>'
+                return
+            }
+            container.innerHTML = ''
+            totes.forEach(ot => {
+                const estaRevocada = revocats.has(ot.id)
+                const row = document.createElement('div')
+                row.className = 'ot-row'
+                row.id = `ot-row-${ot.id}`
+                row.innerHTML = `
+                    <span class="ot-id">${ot.id}</span>
+                    <span class="ot-op">${ot.nomOperari}</span>
+                    <span class="ot-idx">idx: ${ot.revocation_index}</span>
+                    <span class="ot-status ${estaRevocada ? 'revocada' : 'valida'}" id="status-${ot.id}">${estaRevocada ? 'REVOCADA' : 'VALIDA'}</span>
+                    <button class="btn-rev ${estaRevocada ? 'restaurar' : 'revocar'}" id="btn-${ot.id}">${estaRevocada ? 'Restaurar' : 'Revocar'}</button>
+                `
+                row.querySelector('button').addEventListener('click', () => toggleRevocacio(ot.id, revocats.has(ot.id)))
+                container.appendChild(row)
+            })
+        }
+
+        async function toggleRevocacio(idOrdre, estaRevocada) {
+            const btn = document.getElementById(`btn-${idOrdre}`)
+            const statusEl = document.getElementById(`status-${idOrdre}`)
+            btn.disabled = true
+            try {
+                const endpoint = estaRevocada ? '/api/restaurar' : '/api/revocar'
+                const r = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_ordre: idOrdre }),
+                })
+                const data = await r.json()
+                if (!r.ok) throw new Error(data.error)
+                if (estaRevocada) {
+                    revocats.delete(idOrdre)
+                    statusEl.className = 'ot-status valida'
+                    statusEl.textContent = 'VALIDA'
+                    btn.className = 'btn-rev revocar'
+                    btn.textContent = 'Revocar'
+                    btn.onclick = () => toggleRevocacio(idOrdre, false)
+                    toast(`OT ${idOrdre} restaurada ✓`, 'ok')
+                    afegirLog(`OT restaurada: ${idOrdre} (idx ${data.revocation_index})`, 'ok')
+                } else {
+                    revocats.add(idOrdre)
+                    statusEl.className = 'ot-status revocada'
+                    statusEl.textContent = 'REVOCADA'
+                    btn.className = 'btn-rev restaurar'
+                    btn.textContent = 'Restaurar'
+                    btn.onclick = () => toggleRevocacio(idOrdre, true)
+                    toast(`OT ${idOrdre} revocada ✓`, 'ok')
+                    afegirLog(`OT revocada: ${idOrdre} (idx ${data.revocation_index})`, 'err')
+                }
+            } catch (err) {
+                toast(`Error: ${err.message}`, 'err')
+                afegirLog(`Error revocació: ${err.message}`, 'err')
+            } finally {
+                btn.disabled = false
+            }
+        }
+
         function seleccionarOp(op) {
             operariSeleccionat = op
             document.querySelectorAll('.op-item').forEach(el => {
@@ -360,15 +416,6 @@
             disp.innerHTML = `<span>Operari:</span><span class="sd-name">${op.nom}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-left:auto">${op.connectionId.slice(0, 8)}…</span>`
             comprovarBoto()
             afegirLog(`Operari seleccionat: ${op.nom}`)
-        }
-
-        async function carregarOperaris() {
-            try {
-                const r = await fetch('/api/operaris')
-                totsElsOperaris = await r.json()
-                const q = document.getElementById('op-search').value.trim().toLowerCase()
-                renderOperaris(q ? totsElsOperaris.filter(o => o.nom.toLowerCase().includes(q)) : totsElsOperaris)
-            } catch {}
         }
 
         document.getElementById('op-search').addEventListener('input', e => {
@@ -382,18 +429,15 @@
                 const ids = await r.json()
                 const alertEl = document.getElementById('alert-pendent')
                 const seccioEl = document.getElementById('seccio-pendents')
-
                 if (!ids.length) {
                     alertEl.classList.remove('visible')
                     seccioEl.style.display = 'none'
                     return
                 }
-
                 alertEl.classList.add('visible')
                 document.getElementById('alert-text').textContent =
                     ids.length === 1 ? '1 nova connexió pendent de registre' : `${ids.length} noves connexions pendents de registre`
                 seccioEl.style.display = 'block'
-
                 const llista = document.getElementById('llista-pendents')
                 llista.innerHTML = ''
                 ids.forEach(connId => {
@@ -429,7 +473,7 @@
                 if (!r.ok) throw new Error(data.error)
                 toast(`Operari "${nom}" registrat ✓`, 'ok')
                 afegirLog(`Registrat: ${nom} → ${connectionId.slice(0, 8)}…`, 'ok')
-                await Promise.all([carregarPendents(), carregarOperaris()])
+                await carregarTot()
             } catch (err) {
                 toast(`Error: ${err.message}`, 'err')
                 btn.disabled = false
@@ -442,15 +486,11 @@
             const tasca  = document.getElementById('tasca').value.trim()
             const data   = document.getElementById('data').value
             const btn    = document.getElementById('btn-emetre')
-
-            // recollir riscos i certificacions marcats (només els funcionals)
             const riscos = document.getElementById('risc-atex').checked ? 'ATEX' : ''
             const certificacions = document.getElementById('cert-soldador').checked ? 'soldador' : ''
-
             btn.disabled = true
             btn.textContent = 'Emetent…'
             afegirLog(`Emetent OT → ${operariSeleccionat.nom} | ${equip} | riscos: ${riscos || 'cap'} | certs: ${certificacions || 'cap'}`)
-
             try {
                 const r = await fetch('/api/emetre', {
                     method: 'POST',
@@ -468,6 +508,7 @@
                 if (!r.ok) throw new Error(resposta.error)
                 toast(`OT enviada al wallet de ${operariSeleccionat.nom} ✓`, 'ok')
                 afegirLog(`OT emesa: ${resposta.id_ordre}`, 'ok')
+                await carregarTot()
             } catch (err) {
                 toast(`Error: ${err.message}`, 'err')
                 afegirLog(`Error: ${err.message}`, 'err')
@@ -478,16 +519,25 @@
             }
         })
 
+        async function carregarTot() {
+            await carregarPendents()
+            try {
+                const r = await fetch('/api/operaris')
+                totsElsOperaris = await r.json()
+                const q = document.getElementById('op-search').value.trim().toLowerCase()
+                renderOperaris(q ? totsElsOperaris.filter(o => o.nom.toLowerCase().includes(q)) : totsElsOperaris)
+                renderOTs(totsElsOperaris)
+            } catch {}
+        }
+
         // inicialització
         document.getElementById('data').value = new Date().toISOString().split('T')[0]
         document.getElementById('preview-id').textContent = `ORD-${Date.now()}`
         ;['equip', 'tasca', 'data'].forEach(id =>
             document.getElementById(id).addEventListener('input', comprovarBoto)
         )
-        carregarOperaris()
-        carregarPendents()
-        setInterval(() => { carregarPendents(); carregarOperaris() }, 8000)
+        carregarTot()
+        setInterval(carregarTot, 8000)
     </script>
 </body>
-
 </html>
