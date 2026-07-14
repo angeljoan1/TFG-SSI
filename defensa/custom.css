@@ -1,0 +1,1007 @@
+/* ============================================================================
+   DEFENSA TFG · Identitat Sobirana per al control d'accessos industrial
+   Tema CLAR · accent blau UIB. Suport visual, poc text.
+   Signatura: el bit d'estat (0 -> 1) i el binomi CONCEDIT / DENEGAT.
+   ----------------------------------------------------------------------------
+   Edita els tokens de :root per ajustar tota la paleta d'un sol lloc.
+   ========================================================================== */
+:root {
+  /* Paleta clara, registre institucional UIB */
+  --bg:        #F4F6F9;   /* fons general, gris os molt clar */
+  --bg-deep:   #EAEEF3;   /* fons per a contrastos suaus */
+  --surface:   #FFFFFF;   /* panells i targetes */
+  --surface-2: #F0F3F7;   /* panells alternatius */
+  --line:      #D3DAE3;   /* hairlines i divisors */
+  --ink:       #14212E;   /* text principal, blau tinta fosc */
+  --ink-soft:  #43535F;   /* text secundari */
+  --muted:     #7C8A97;   /* etiquetes, captions */
+  --granted:   #0F9D6B;   /* verd: acces concedit / objectiu assolit */
+  --denied:    #D93A40;   /* vermell: acces denegat / revocat */
+  --steel:     #014AB0;   /* blau UIB, acent principal */
+  --steel-soft:#E3EDFA;   /* blau molt clar, fons d'accent */
+  --amber:     #C77B0A;   /* avis / atencio puntual */
+
+  /* Tipografia: Manrope (titols) + Inter (cos), neta i actual */
+  --font-display: "Manrope", "Inter", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* ---- Fons global ---------------------------------------------------------- */
+.reveal {
+  font-family: var(--font-body);
+  color: var(--ink);
+  font-size: 32px;
+  font-weight: 400;
+}
+.reveal-viewport {
+  background:
+    radial-gradient(1100px 700px at 88% -12%, var(--steel-soft) 0%, transparent 58%),
+    var(--bg);
+}
+
+/* ---- Slide base ----------------------------------------------------------- */
+.reveal .slides section {
+  text-align: left;
+  height: 100%;
+  padding: 5.5% 6.5%;
+  box-sizing: border-box;
+}
+.reveal .slides section.center-block { text-align: center; }
+.reveal .slides section.center-block .eyebrow { justify-content: center; }
+.reveal .slides section.center-block .lead { margin-left: auto; margin-right: auto; }
+
+/* ---- Titols --------------------------------------------------------------- */
+.reveal h1, .reveal h2, .reveal h3 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  margin: 0 0 0.35em 0;
+}
+.reveal h1 { font-size: 1.9em; }
+.reveal h2 { font-size: 1.5em; }
+.reveal h3 { font-size: 1.15em; color: var(--ink); font-weight: 600; }
+.reveal p { line-height: 1.45; color: var(--ink-soft); }
+.reveal strong { color: var(--ink); font-weight: 700; }
+.reveal em { color: var(--steel); font-style: normal; font-weight: 600; }
+
+/* ---- Eyebrow: etiqueta amb numero de bloc -------------------------------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.5em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1em;
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+}
+.eyebrow .num { color: var(--steel); font-weight: 600; }
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 3px;
+  background: var(--steel);
+  display: inline-block;
+}
+
+/* ---- Frase guia ----------------------------------------------------------- */
+.lead {
+  font-family: var(--font-display);
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  /* max-width eliminat: cada slide l'afegeix inline si el necessita */
+}
+
+/* ---- Llistes netes -------------------------------------------------------- */
+.reveal ul.clean { list-style: none; margin: 0.5em 0 0 0; }
+.reveal ul.clean li {
+  position: relative;
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+.reveal ul.clean li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0.5em;
+  width: 9px; height: 9px;
+  background: var(--steel);
+  border-radius: 2px;
+}
+.reveal ul.clean li strong { color: var(--ink); }
+
+/* Variant compacta d'apunts grans (poques paraules, gran) */
+.reveal ul.clean.big li { font-size: 1.15em; margin: 0.55em 0; font-weight: 500; color: var(--ink); }
+.reveal ul.clean.big li::before { top: 0.42em; width: 11px; height: 11px; }
+
+/* ---- Items numerats (sequencia real) ------------------------------------- */
+.steps { display: grid; gap: 0.8em; margin-top: 0.7em; max-width: 30em; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 0.9em; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 0.7em 0.9em; }
+.step .idx {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #fff;
+  background: var(--steel);
+  border-radius: 8px;
+  padding: 0.25em 0.55em;
+  line-height: 1;
+}
+.step .body { color: var(--ink-soft); }
+.step .body b { color: var(--ink); font-weight: 700; display: block; margin-bottom: 0.1em; }
+
+/* ---- Targetes objectiu assolit -------------------------------------------- */
+.goals { display: grid; gap: 0.7em; margin-top: 0.7em; max-width: 32em; }
+.goal {
+  border-left: 4px solid var(--granted);
+  background: var(--surface);
+  border-radius: 0 12px 12px 0;
+  box-shadow: 0 1px 3px rgba(20,33,46,0.05);
+  padding: 0.7em 1em;
+  color: var(--ink-soft);
+}
+.goal .tag { font-family: var(--font-mono); font-size: 0.6em; color: var(--granted);
+  letter-spacing: 0.1em; font-weight: 600; display: block; margin-bottom: 0.2em; }
+
+/* ---- Placeholder de figura / video --------------------------------------- */
+.ph {
+  border: 2px dashed var(--line);
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 14px,
+      rgba(1,74,176,0.045) 14px, rgba(1,74,176,0.045) 28px),
+    var(--surface);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.6em;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  min-height: 300px;
+  margin-top: 0.5em;
+  padding: 1em;
+}
+
+/* ---- Figures amb imatge real (les 2 que ja tens) ------------------------- */
+.figure {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(20,33,46,0.08);
+  padding: 1em;
+  margin-top: 0.4em;
+  display: flex; align-items: center; justify-content: center;
+}
+.figure img { max-width: 100%; max-height: 62vh; height: auto; display: block; border-radius: 6px; }
+.figure.tall img { max-height: 66vh; }
+figcaption, .caption {
+  font-family: var(--font-mono); font-size: 0.5em; color: var(--muted);
+  letter-spacing: 0.06em; margin-top: 0.6em; text-align: center;
+}
+
+/* ---- Layout de dues columnes (imatge + apunts) --------------------------- */
+.cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1.6em; align-items: center; }
+.cols.img-right { grid-template-columns: 1fr 1.25fr; }
+.cols .side { align-self: center; }
+.cols .figure { margin-top: 0; }
+
+/* ---- Chips d'apunt (les frases guia curtes tipus etiqueta) --------------- */
+.chips { display: flex; flex-wrap: wrap; gap: 0.5em; margin-top: 0.7em; }
+.chip {
+  font-family: var(--font-display); font-weight: 600; font-size: 0.62em;
+  background: var(--steel-soft); color: var(--steel);
+  border-radius: 999px; padding: 0.4em 0.9em; letter-spacing: 0.01em;
+}
+.chip.on { background: var(--steel); color: #fff; }
+.chip.ok { background: rgba(15,157,107,0.12); color: var(--granted); }
+.chip.no { background: rgba(217,58,64,0.12); color: var(--denied); }
+
+/* Nota gran a peu de figura / apunt destacat */
+.note { font-family: var(--font-display); font-weight: 600; font-size: 0.8em;
+  color: var(--ink); margin-top: 0.5em; }
+.note .k { color: var(--steel); }
+
+/* ---- El binomi CONCEDIT / DENEGAT ---------------------------------------- */
+.verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; margin-top: 0.5em; }
+.verdict .card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06);
+  padding: 1.2em;
+}
+.verdict .card .state {
+  font-family: var(--font-mono);
+  font-size: 1.1em; font-weight: 600;
+  letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 0.5em;
+  margin-bottom: 0.35em;
+}
+.verdict .granted .state { color: var(--granted); }
+.verdict .denied .state  { color: var(--denied); }
+.verdict .card .dot { width: 13px; height: 13px; border-radius: 50%; }
+.verdict .granted .dot { background: var(--granted); box-shadow: 0 0 14px rgba(15,157,107,0.5); }
+.verdict .denied  .dot { background: var(--denied);  box-shadow: 0 0 14px rgba(217,58,64,0.5); }
+.verdict .card p { font-size: 0.7em; }
+
+/* ---- Taula de casos validats --------------------------------------------- */
+.reveal table { font-size: 0.66em; border-collapse: separate; border-spacing: 0;
+  width: 100%; margin-top: 0.5em; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.reveal table th {
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em;
+  font-size: 0.82em; color: var(--muted); text-align: left; font-weight: 600;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line); padding: 0.6em 0.9em;
+}
+.reveal table td { padding: 0.6em 0.9em; border-bottom: 1px solid var(--line); color: var(--ink-soft); }
+.reveal table tr:last-child td { border-bottom: none; }
+.reveal table td.ok  { color: var(--granted); font-family: var(--font-mono); font-weight: 600; }
+.reveal table td.no  { color: var(--denied);  font-family: var(--font-mono); font-weight: 600; }
+
+/* ---- Portada -------------------------------------------------------------- */
+.cover { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+.cover h1 { font-size: 1.95em; max-width: 17em; }
+.cover .sub { color: var(--ink-soft); font-size: 0.85em; margin-top: 0.5em; max-width: 26em; }
+.cover.center-block .sub { margin-left: auto; margin-right: auto; }
+.cover .meta {
+  font-family: var(--font-mono); font-size: 0.52em; color: var(--muted);
+  margin-top: 2em; line-height: 1.8; letter-spacing: 0.02em;
+}
+.cover .meta b { color: var(--ink-soft); font-weight: 500; }
+.cover .brand-logo { height: 84px; width: auto; margin-bottom: 1.4em; }
+.cover.center-block .brand-logo { margin-left: auto; margin-right: auto; }
+
+/* ---- Tancament ------------------------------------------------------------ */
+.closing { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+.closing .repo {
+  font-family: var(--font-mono); font-size: 0.65em; color: var(--steel); font-weight: 500;
+  margin-top: 1.2em; letter-spacing: 0.02em;
+}
+
+/* ---- Slides de RECAMBRA (Q&A) --------------------------------------------- */
+.reveal .slides section.reserve { border-top: 4px solid var(--amber); }
+.reserve .eyebrow .num { color: var(--amber); }
+.reserve .eyebrow::before { background: var(--amber); }
+
+/* ---- Divider -------------------------------------------------------------- */
+section.divider { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+section.divider h2 { color: var(--steel); font-size: 2em; }
+
+/* ---- Marca fixa (cantonada): el bit d'estat ------------------------------ */
+.brand-rail {
+  position: fixed; left: 24px; bottom: 18px; z-index: 30;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em;
+  color: var(--muted); display: flex; align-items: center; gap: 10px;
+  pointer-events: none;
+}
+.brand-rail .bits { display: flex; gap: 4px; }
+.brand-rail .bit { width: 9px; height: 9px; border: 1px solid var(--line);
+  border-radius: 2px; background: var(--surface); }
+.brand-rail .bit.on { background: var(--steel); border-color: var(--steel); }
+
+/* ---- Numero de slide ------------------------------------------------------ */
+.reveal .slide-number {
+  font-family: var(--font-mono); background: transparent; color: var(--muted);
+  font-size: 13px; right: 24px; bottom: 16px;
+}
+
+/* ---- Barra de progres ----------------------------------------------------- */
+.reveal .progress { color: var(--steel); height: 3px; }
+
+/* ---- Controls: to fosc sobre fons clar ------------------------------------ */
+.reveal .controls { color: var(--steel); }
+
+/* ============================================================================
+   ESQUEMES ANIMATS (estetica del video, en clar)
+   Mockup de mobil, wires SVG, files d'atribut, node de confianca, barrera.
+   Pensats per animar-se amb fragments de Reveal.
+   ========================================================================== */
+
+/* ---- Escena: contenidor relatiu a tota l'amplada ------------------------- */
+.scene { position: relative; width: 100%; margin-top: 0.3em; }
+.scene svg.wires { position: absolute; inset: 0; width: 100%; height: 100%;
+  overflow: visible; pointer-events: none; z-index: 0; }
+.scene .layer { position: relative; z-index: 1; }
+
+/* ---- Mockup de mobil (cartera digital) ----------------------------------- */
+.phone {
+  width: 210px; border-radius: 26px; background: #fff;
+  border: 2px solid var(--ink); box-shadow: 0 14px 40px rgba(20,33,46,0.16);
+  padding: 14px 12px 18px; position: relative;
+}
+.phone::before { content: ""; display: block; width: 54px; height: 5px;
+  background: var(--ink); border-radius: 999px; margin: 2px auto 12px; opacity: 0.85; }
+.phone .screen-label { font-family: var(--font-mono); font-size: 0.34em;
+  letter-spacing: 0.14em; color: var(--muted); text-align: center; margin-bottom: 10px; }
+
+/* Targeta de credencial dins del mobil (o solta) */
+.cred {
+  background: var(--surface); border: 1px solid var(--line);
+  border-top: 4px solid var(--steel); border-radius: 12px;
+  padding: 0.55em 0.7em; display: flex; align-items: center; gap: 0.6em;
+  box-shadow: 0 3px 10px rgba(20,33,46,0.08); font-size: 0.62em;
+}
+.cred .ic { width: 30px; height: 30px; border-radius: 8px; background: var(--steel-soft);
+  color: var(--steel); display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: var(--font-mono); font-size: 0.7em; flex: 0 0 auto; }
+.cred .t { font-family: var(--font-display); font-weight: 600; color: var(--ink); line-height: 1.15; }
+.cred .s { color: var(--muted); font-size: 0.8em; }
+.cred .chk { margin-left: auto; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--granted); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-size: 0.7em; flex: 0 0 auto; }
+
+/* ---- Files d'atribut: ocult (gris) / revelat (verd) ---------------------- */
+.attrs { display: grid; gap: 0.5em; }
+.attr {
+  display: flex; align-items: center; gap: 0.6em;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 0.5em 0.8em; font-size: 0.62em; background: var(--surface);
+  color: var(--muted);
+}
+.attr .k { font-weight: 600; }
+.attr .v { margin-left: auto; font-family: var(--font-mono); font-size: 0.85em;
+  display: flex; align-items: center; gap: 0.35em; }
+.attr .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+/* revelat */
+.attr.on { color: var(--ink); border-color: var(--granted);
+  background: rgba(15,157,107,0.06); }
+.attr.on .k { color: var(--ink); }
+.attr.on .dot { background: var(--granted); }
+.attr.on .v { color: var(--granted); }
+/* ocult */
+.attr.off .v { color: var(--muted); }
+
+/* ---- Node de confianca (registre / credencial signada) ------------------- */
+.trust { display: flex; align-items: center; gap: 1.4em; justify-content: center; flex-wrap: wrap; }
+.tnode { text-align: center; }
+.tnode .box { width: 128px; height: 92px; border-radius: 14px; background: var(--surface);
+  border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(20,33,46,0.06);
+  display: flex; align-items: center; justify-content: center; color: var(--steel);
+  font-family: var(--font-mono); font-size: 1.3em; font-weight: 700; }
+.tnode .box.ok { color: var(--granted); border-color: var(--granted); }
+.tnode .cap { font-family: var(--font-display); font-weight: 600; font-size: 0.6em;
+  color: var(--ink); margin-top: 0.5em; }
+.tnode .sub { font-family: var(--font-mono); font-size: 0.42em; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase; }
+.tlink { color: var(--muted); font-size: 1.2em; }
+
+/* ---- Icona-targeta d'emissor (els tres de dalt) -------------------------- */
+.issuers { display: flex; justify-content: space-between; gap: 1em; }
+.issuer { text-align: center; flex: 1; }
+.issuer .card-ic { width: 96px; height: 96px; border-radius: 18px; margin: 0 auto;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 6px 20px rgba(20,33,46,0.07);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--steel); font-size: 2em; }
+.issuer .name { font-family: var(--font-display); font-weight: 600; font-size: 0.62em;
+  color: var(--ink); margin-top: 0.6em; }
+
+/* ---- Veredicte gran: acces concedit / barrera ---------------------------- */
+.gate-scene { display: flex; align-items: center; justify-content: center; gap: 2.4em; }
+.big-check { width: 120px; height: 120px; border-radius: 50%;
+  background: var(--granted); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-size: 3em;
+  box-shadow: 0 0 0 12px rgba(15,157,107,0.12); }
+.big-check.no { background: var(--denied); box-shadow: 0 0 0 12px rgba(217,58,64,0.12); }
+.gate { position: relative; width: 150px; height: 120px; }
+.gate .post { position: absolute; left: 8px; bottom: 0; width: 12px; height: 78px;
+  background: var(--ink); border-radius: 3px; }
+.gate .arm { position: absolute; left: 14px; bottom: 70px; width: 130px; height: 9px;
+  background: repeating-linear-gradient(45deg, var(--denied) 0 14px, #fff 14px 28px);
+  border: 1px solid var(--ink); transform-origin: left center;
+  transform: rotate(0deg); transition: transform 0.7s ease; }
+/* barrera baixada per defecte; puja quan el fragment .lift es fa visible */
+.gate .arm.lift { transform: rotate(-62deg); }
+.gate .arm.lift.visible { transform: rotate(0deg); }
+
+/* ---- Suport per a WIRES SVG (linies que es dibuixen amb fragments) -------- */
+.wires path, .wires line { fill: none; stroke: var(--line); stroke-width: 2.5;
+  stroke-linecap: round; }
+.wires .flow { stroke: var(--steel); stroke-dasharray: var(--len, 600);
+  stroke-dashoffset: var(--len, 600); }
+.wires .flow.on { stroke: var(--granted); }
+/* quan un path esta dins d'un .fragment visible, es dibuixa */
+.fragment.wire { opacity: 1 !important; }
+.fragment.wire path, .fragment.wire line { stroke-dashoffset: var(--len, 600);
+  transition: stroke-dashoffset 0.7s ease; }
+.fragment.wire.visible path, .fragment.wire.visible line { stroke-dashoffset: 0; }
+
+/* Etiqueta-apunt gran sobre l'escena (tipus "Doble ronda de verificacio") */
+.tagline { font-family: var(--font-display); font-weight: 700; font-size: 1.15em;
+  color: var(--ink); letter-spacing: -0.01em; }
+.tagline .k { color: var(--steel); }
+
+/* Numeret de pas (Quina feina? / Quins requisits?) */
+.qrow { display: flex; align-items: center; gap: 0.6em; margin: 0.4em 0;
+  font-family: var(--font-display); font-weight: 600; font-size: 0.85em; color: var(--ink); }
+.qrow .n { width: 30px; height: 30px; border-radius: 50%; background: var(--steel);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.62em; flex: 0 0 auto; }
+
+/* ---- Accessibilitat: moviment reduit -------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .reveal .slides section { transition: none !important; }
+  .gate .arm, .fragment.wire path, .fragment.wire line { transition: none !important; }
+}
+
+/* ---- Índex: variant compacta de .steps per a 6 items en una pantalla ----- */
+.index-list { gap: 0.42em; max-width: 34em; }
+.index-list .step { padding: 0.5em 0.9em; }
+.index-list .step .idx { font-size: 0.8em; padding: 0.2em 0.5em; }
+.index-list .step .body b { margin-bottom: 0; font-size: 0.92em; }
+
+/* ---- Mockup de document (paper/PDF), sense imatge externa --------------- */
+.doc-mock {
+  width: 210px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(20,33,46,0.10);
+  padding: 1em 1em 1.2em; margin: 0 auto; position: relative;
+}
+.doc-mock::before {
+  content: "PDF"; position: absolute; top: -10px; right: 14px;
+  background: var(--denied); color: #fff; font-family: var(--font-mono);
+  font-size: 0.5em; font-weight: 700; padding: 0.2em 0.5em; border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.doc-mock .ln { height: 8px; background: var(--line); border-radius: 3px; margin: 0.5em 0; }
+.doc-mock .ln.w60 { width: 60%; }
+.doc-mock .ln.w80 { width: 80%; }
+.doc-mock .ln.w40 { width: 40%; }
+.doc-mock .stamp {
+  margin-top: 0.9em; display: inline-block; border: 2px solid var(--muted);
+  color: var(--muted); font-family: var(--font-mono); font-size: 0.42em;
+  letter-spacing: 0.08em; padding: 0.3em 0.6em; border-radius: 4px; transform: rotate(-4deg);
+}
+
+/* ---- Escena documentació -> PDF, amb fletxa flexbox robusta ------------- */
+.doc-scene { display: flex; align-items: center; gap: 1.4em; margin-top: 0.4em; }
+.doc-scene .doc-list { flex: 0 0 auto; max-width: 22em; }
+.doc-scene .doc-arrow-simple {
+  flex: 0 0 auto; width: 60px; height: 60px;
+  color: var(--denied);
+}
+.doc-scene .doc-mock { flex: 0 0 auto; margin: 0; }
+
+/* Chip que cau a la línia següent, sense trencar-se ell mateix ------------- */
+.reveal ul.clean.big li .chip {
+  display: inline-flex;
+  white-space: nowrap;
+  margin-top: 0.35em;
+}
+
+/* ---- Mockup de rellotge (horari laboral limitat) ------------------------- */
+.clock-mock { display: flex; flex-direction: column; align-items: center; gap: 0.6em; flex: 0 0 auto; }
+.clock-face {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--ink);
+  position: relative; box-shadow: 0 6px 20px rgba(20,33,46,0.08);
+}
+.clock-hand { position: absolute; background: var(--ink); border-radius: 2px;
+  left: 50%; bottom: 50%; transform-origin: bottom center; }
+.clock-hand.h { width: 4px; height: 26px; margin-left: -2px; transform: rotate(200deg); }
+.clock-hand.m { width: 3px; height: 34px; margin-left: -1.5px; transform: rotate(320deg); background: var(--denied); }
+.clock-face::after { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; background: var(--ink); border-radius: 50%; transform: translate(-50%,-50%); }
+
+/* ---- Fletxa vertical de transicio (problema -> solucio) ------------------ */
+.turn-arrow { margin: 1em auto; color: var(--denied); width: 32px; text-align: center; }
+.turn-arrow svg { width: 32px; height: 32px; display: block; margin: 0 auto; }
+
+/* ---- Rellotge flotant a la dreta, sense ocupar columna propia ------------ */
+.clock-float { float: right; margin: -3.2em 0 1em 1.4em; }
+.clock-float .clock-face { width: 78px; height: 78px; }
+
+/* ---- Slide 04: signatura monolitica vs granular -------------------------- */
+.sig-scene { display: flex; align-items: center; justify-content: center; gap: 1.6em; margin: 0.6em 0 1em; }
+.sig-col { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+.sig-cap { font-family: var(--font-display); font-weight: 600; font-size: 0.62em; color: var(--ink); text-align: center; }
+.sig-cap em { color: var(--steel); font-weight: 600; }
+
+/* Document monolitic amb un sol pany a sobre */
+.mono-doc { position: relative; width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(20,33,46,0.10); padding: 2.4em 1.1em 1.2em; }
+.mono-doc .ln { height: 8px; background: var(--line); border-radius: 3px; margin: 0.5em 0; }
+.mono-doc .ln.w80 { width: 80%; } .mono-doc .ln.w60 { width: 60%; } .mono-doc .ln.w40 { width: 40%; }
+.mono-lock { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.2em; background: var(--steel); color: #fff; border-radius: 10px; padding: 0.5em 0.9em; box-shadow: 0 6px 18px rgba(1,74,176,0.28); }
+.mono-lock svg { width: 26px; height: 26px; }
+.mono-lock span { font-family: var(--font-mono); font-size: 0.42em; font-weight: 700; letter-spacing: 0.06em; }
+
+/* Fletxa de transicio */
+.sig-arrow { width: 52px; height: 52px; color: var(--steel); flex: 0 0 auto; }
+
+/* Columna d'atributs granulars */
+.sig-attrs { width: 300px; }
+.sig-attrs .attr { font-size: 0.58em; }
+
+/* Etiqueta sota cada columna */
+.sig-tag { font-family: var(--font-mono); font-size: 0.52em; font-weight: 600; letter-spacing: 0.05em; padding: 0.35em 0.9em; border-radius: 999px; }
+.sig-tag.no { background: rgba(217,58,64,0.12); color: var(--denied); }
+.sig-tag.ok { background: rgba(15,157,107,0.12); color: var(--granted); }
+
+/* Bloc lateral inferior (chips + nota) */
+.sig-side { margin-top: 0.4em; }
+.sig-side .chips { justify-content: center; }
+.sig-side .note { text-align: center; max-width: 34em; margin-left: auto; margin-right: auto; }
+
+/* ---- Slide 05: arquitectura, flux vertical complet ---------------------- */
+.arch { display: flex; flex-direction: column; align-items: center; margin: 0.5em 0 0.3em; }
+
+.arch-issuers { display: flex; justify-content: center; gap: 1.4em; width: 100%; }
+.arch-mid { display: flex; justify-content: center; width: 100%; }
+
+/* Node generic */
+.arch-node { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.7em 1em; text-align: center; }
+.issuer-node { width: 210px; }
+.verifier-node { width: 240px; border-color: var(--steel); border-width: 1.5px; }
+
+.arch-ic { width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 0.4em;
+  background: var(--steel-soft); color: var(--steel); display: flex; align-items: center;
+  justify-content: center; font-family: var(--font-mono); font-weight: 700; font-size: 0.8em; }
+.arch-ic.v { background: rgba(1,74,176,0.10); }
+.arch-ic.v svg { width: 30px; height: 30px; }
+
+.arch-name { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink); }
+.arch-sub { font-size: 0.52em; color: var(--ink-soft); margin-top: 0.1em; }
+.arch-key { font-family: var(--font-mono); font-size: 0.42em; color: var(--granted);
+  letter-spacing: 0.03em; margin-top: 0.5em; padding: 0.25em 0.5em;
+  background: rgba(15,157,107,0.09); border-radius: 999px; display: inline-block; }
+
+/* Wallet del titular */
+.arch-wallet { display: flex; align-items: center; gap: 0.7em;
+  background: var(--ink); color: #fff; border-radius: 14px; padding: 0.6em 1.1em;
+  box-shadow: 0 8px 24px rgba(20,33,46,0.16); }
+.arch-wallet-ic { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.arch-wallet-ic svg { width: 26px; height: 26px; color: #fff; }
+.arch-wallet-txt b { font-family: var(--font-display); font-weight: 700; font-size: 0.7em; display: block; }
+.arch-wallet-txt span { font-family: var(--font-mono); font-size: 0.5em; color: rgba(255,255,255,0.7); letter-spacing: 0.03em; }
+
+/* Fletxes SVG entre files */
+.arch-wires { width: 100%; height: 62px; overflow: visible; }
+.arch-wires.single { height: 42px; }
+.arch-wires path { fill: none; stroke: var(--steel); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- Slide 04b: triangle de confianca ----------------------------------- */
+.trust-tri { position: relative; width: 100%; max-width: 40em; height: 15em;
+  margin: 0.5m auto 0.2em; }
+
+.tri-node { position: absolute; z-index: 2; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 16px rgba(20,33,46,0.06);
+  padding: 0.55em 0.8em; text-align: center; width: 165px; }
+.tri-node b { font-family: var(--font-display); font-weight: 700; font-size: 0.66em;
+  color: var(--ink); display: block; }
+.tri-node span { font-family: var(--font-mono); font-size: 0.44em; color: var(--muted); letter-spacing: 0.03em; }
+.tri-node .tri-ic { width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 0.35em;
+  display: flex; align-items: center; justify-content: center; background: var(--steel-soft); color: var(--steel); }
+.tri-node .tri-ic svg { width: 24px; height: 24px; }
+
+.tri-node.emissor { top: 0; left: 4%; }
+.tri-node.verificador { top: 0; right: 4%; }
+.tri-node.verificador .tri-ic { color: var(--granted); background: rgba(15,157,107,0.10); }
+.tri-node.titular { bottom: 0; left: 50%; transform: translateX(-50%); }
+
+/* Ancora central */
+.tri-anchor { position: absolute; z-index: 2; top: 44%; left: 50%; transform: translate(-50%,-50%);
+  background: var(--ink); color: #fff; border-radius: 12px; padding: 0.55em 0.9em; text-align: center;
+  box-shadow: 0 8px 24px rgba(20,33,46,0.18); width: 170px; }
+.tri-anchor b { font-family: var(--font-display); font-weight: 700; font-size: 0.62em; display: block; }
+.tri-anchor span { font-family: var(--font-mono); font-size: 0.4em; color: rgba(255,255,255,0.72); letter-spacing: 0.02em; }
+.tri-anchor-ic { width: 34px; height: 34px; border-radius: 9px; margin: 0 auto 0.3em;
+  background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
+.tri-anchor-ic svg { width: 22px; height: 22px; color: #fff; }
+
+/* Connexions */
+.tri-wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; pointer-events: none; }
+.tri-line { stroke-width: 2; stroke-linecap: round; }
+.tri-line.dashed { stroke: var(--muted); stroke-dasharray: 6 7; }
+.tri-line.move { stroke: var(--steel); }
+.tri-line.anchor { stroke: var(--line); stroke-width: 1.6; }
+
+/* Badge "no es coneixen" sobre la linia superior */
+.tri-badge { position: absolute; top: 5%; left: 50%; transform: translate(-50%,-50%); z-index: 3;
+  font-family: var(--font-mono); font-size: 0.42em; color: var(--muted); letter-spacing: 0.06em;
+  background: var(--bg); padding: 0.2em 0.7em; border: 1px solid var(--line); border-radius: 999px; }
+
+/* ---- Slide 06: definicions clau (dues columnes) ------------------------- */
+.def-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4em; margin-top: 0.7em; }
+
+.def-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(20,33,46,0.06); padding: 1.1em 1.2em; display: flex; flex-direction: column; }
+
+.def-head { display: flex; align-items: baseline; gap: 0.7em; margin-bottom: 0.7em;
+  padding-bottom: 0.6em; border-bottom: 1px solid var(--line); }
+.def-tag { font-family: var(--font-mono); font-size: 0.44em; font-weight: 600; letter-spacing: 0.1em;
+  color: var(--steel); background: var(--steel-soft); padding: 0.3em 0.6em; border-radius: 999px; }
+.def-head h3 { margin: 0; font-size: 1.1em; }
+
+.def-row { display: flex; align-items: flex-start; gap: 0.7em; margin: 0.5em 0; }
+.def-ic { width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto;
+  background: var(--steel-soft); color: var(--steel); display: flex; align-items: center; justify-content: center; }
+.def-ic svg { width: 22px; height: 22px; }
+.def-row div:last-child { font-size: 0.62em; color: var(--ink-soft); line-height: 1.3; }
+.def-row b { display: block; color: var(--ink); font-weight: 700; font-size: 1.08em; margin-bottom: 0.1em; }
+
+.def-example { margin-top: auto; padding-top: 0.7em; font-family: var(--font-display); font-weight: 600;
+  font-size: 0.66em; color: var(--ink-soft); }
+.def-example em { color: var(--steel); font-weight: 700; }
+.def-example.key { color: var(--ink); background: var(--steel-soft); border-radius: 10px;
+  padding: 0.6em 0.8em; text-align: center; margin-top: 0.9em; }
+  
+  /* ---- Slide 04c: comunicacio DIDComm ------------------------------------- */
+.didcomm { display: flex; align-items: center; justify-content: center; gap: 0.6em; margin: 1em 0 0.3em; }
+
+.dc-node { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.7em 1em; text-align: center; width: 150px; flex: 0 0 auto; }
+.dc-node b { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink); display: block; }
+.dc-node-sub { font-family: var(--font-mono); font-size: 0.44em; color: var(--muted); letter-spacing: 0.03em; }
+.dc-ic { width: 48px; height: 48px; border-radius: 12px; margin: 0 auto 0.4em;
+  background: var(--steel-soft); color: var(--steel); display: flex; align-items: center; justify-content: center; }
+.dc-ic svg { width: 27px; height: 27px; }
+.dc-ic.v { background: rgba(15,157,107,0.10); color: var(--granted); }
+.dc-node.titular { border-color: var(--ink); border-width: 1.5px; width: 165px; }
+.dc-node.titular .dc-ic { background: var(--ink); color: #fff; }
+
+/* Canal xifrat entre nodes */
+.dc-channel { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.15em;
+  position: relative; padding: 0 0.3em; min-width: 130px; }
+.dc-channel::before { content: ""; position: absolute; top: 24px; left: 0; right: 0; height: 3px;
+  background: repeating-linear-gradient(90deg, var(--steel) 0 10px, transparent 10px 18px); z-index: 0; }
+.dc-lock { width: 40px; height: 40px; border-radius: 50%; background: var(--steel); color: #fff;
+  display: flex; align-items: center; justify-content: center; z-index: 1; box-shadow: 0 4px 12px rgba(1,74,176,0.28); }
+.dc-lock svg { width: 22px; height: 22px; }
+.dc-label { font-family: var(--font-mono); font-size: 0.5em; font-weight: 600; color: var(--steel);
+  letter-spacing: 0.06em; margin-top: 0.3em; }
+.dc-sub { font-family: var(--font-mono); font-size: 0.42em; color: var(--muted); letter-spacing: 0.02em; }
+
+/* Barra "cap canal directe" */
+.dc-nolink { display: flex; justify-content: center; margin-top: 0.4em; position: relative; }
+.dc-nolink::before { content: ""; position: absolute; top: 50%; left: 12%; right: 12%; height: 2px;
+  background: repeating-linear-gradient(90deg, var(--denied) 0 7px, transparent 7px 13px); opacity: 0.55; }
+.dc-nolink-badge { font-family: var(--font-mono); font-size: 0.44em; color: var(--denied);
+  letter-spacing: 0.05em; background: var(--bg); padding: 0.3em 0.9em; border: 1px solid rgba(217,58,64,0.3);
+  border-radius: 999px; position: relative; z-index: 1; }
+
+  /* ---- Slide 08: la fabrica d'agents -------------------------------------- */
+.factory { display: flex; flex-direction: column; align-items: center; margin: 0.7em 0 0.3em; }
+
+.fab-core { background: var(--ink); color: #fff; border-radius: 16px; padding: 0.9em 1.2em;
+  box-shadow: 0 10px 30px rgba(20,33,46,0.18); text-align: center; min-width: 30em; }
+.fab-core-title { font-family: var(--font-mono); font-size: 0.6em; color: rgba(255,255,255,0.9);
+  letter-spacing: 0.04em; margin-bottom: 0.6em; }
+.fab-mods { display: flex; justify-content: center; gap: 0.6em; }
+.fab-mod { display: flex; flex-direction: column; gap: 0.15em; background: rgba(255,255,255,0.10);
+  border-radius: 10px; padding: 0.5em 0.8em; font-family: var(--font-display); font-weight: 600;
+  font-size: 0.6em; color: #fff; }
+.fab-mod small { font-family: var(--font-mono); font-size: 0.72em; font-weight: 400; color: rgba(255,255,255,0.6); letter-spacing: 0.02em; }
+
+.fab-arrow { width: 40px; height: 40px; color: var(--steel); margin: 0.5em 0; }
+
+.fab-agents { display: flex; justify-content: center; gap: 1em; }
+.fab-agent { display: flex; flex-direction: column; align-items: center; gap: 0.35em;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(20,33,46,0.06); padding: 0.7em 1.1em; }
+.fab-ag-ic { width: 52px; height: 52px; border-radius: 12px; background: var(--steel-soft); color: var(--steel);
+  display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-weight: 700; font-size: 0.7em; }
+.fab-agent.verifier .fab-ag-ic { background: rgba(15,157,107,0.12); color: var(--granted); }
+.fab-ag-name { font-family: var(--font-mono); font-size: 0.42em; color: var(--muted); letter-spacing: 0.03em; text-align: center; }
+
+/* ---- Slide 09: els tres emissors ---------------------------------------- */
+.iss-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.2em; margin-top: 0.6em; }
+
+.iss-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.8em 1em; }
+.iss-card.featured { border-color: var(--steel); border-width: 1.5px; }
+
+.iss-top { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.6em; }
+.iss-ic { width: 44px; height: 44px; border-radius: 11px; background: var(--steel-soft); color: var(--steel);
+  display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-weight: 700; font-size: 0.62em; flex: 0 0 auto; }
+.iss-top b { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink); display: block; }
+.iss-top span { font-family: var(--font-mono); font-size: 0.46em; color: var(--muted); letter-spacing: 0.03em; }
+
+/* mock de formulari OT */
+.iss-form { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.6em; margin-bottom: 0.6em; }
+.iss-form-bar { display: flex; gap: 5px; margin-bottom: 0.5em; }
+.dotmac { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.iss-field { margin: 0.35em 0; }
+.iss-field label { font-family: var(--font-mono); font-size: 0.4em; color: var(--muted); letter-spacing: 0.04em; display: block; margin-bottom: 0.2em; }
+.iss-input { height: 10px; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
+.iss-input.short { width: 65%; }
+.iss-btn { margin-top: 0.5em; background: var(--steel); color: #fff; font-family: var(--font-display);
+  font-weight: 600; font-size: 0.48em; text-align: center; padding: 0.5em; border-radius: 6px; }
+
+.iss-feats { list-style: none; margin: 0; padding: 0; }
+.iss-feats li { position: relative; padding-left: 1.1em; font-size: 0.56em; color: var(--ink-soft); margin: 0.28em 0; }
+.iss-feats li::before { content: ""; position: absolute; left: 0; top: 0.45em; width: 7px; height: 7px; background: var(--steel); border-radius: 2px; }
+
+.iss-col-right { display: flex; flex-direction: column; gap: 1em; }
+.iss-script { font-family: var(--font-mono); font-size: 0.5em; color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 0.5em 0.7em; letter-spacing: 0.02em; }
+.iss-mini { font-family: var(--font-mono); font-size: 0.44em; color: var(--muted); letter-spacing: 0.03em; margin-top: 0.4em; }
+
+/* ---- Slide 09: captura formulari OT a pantalla completa ----------------- */
+.reveal .slides section.ot-full { display: flex; align-items: center; justify-content: center;
+  padding: 2%; height: 100%; width: 100%; box-sizing: border-box; text-align: center; }
+.ot-full img { max-height: 100%; max-width: 100%; width: auto; height: auto;
+  object-fit: contain; margin: 0 auto; border-radius: 12px; box-shadow: 0 10px 40px rgba(20,33,46,0.14); }
+
+  /* ---- Slide 11: ordre estricte de validacio ------------------------------ */
+.val-flow { display: flex; flex-direction: column; align-items: stretch; gap: 0.3em; margin: 0.6em 0 0.3em; max-width: 34em; }
+
+.val-step { display: flex; align-items: center; gap: 0.9em;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(20,33,46,0.05); padding: 0.7em 1em; }
+.val-step.ok-step { border-color: var(--granted); background: rgba(15,157,107,0.05); }
+
+.val-n { font-family: var(--font-mono); font-weight: 600; font-size: 0.7em; color: #fff;
+  background: var(--steel); border-radius: 9px; padding: 0.35em 0.6em; line-height: 1; flex: 0 0 auto; }
+.val-n.ok { background: var(--granted); }
+
+.val-body { flex: 1; }
+.val-body b { font-family: var(--font-display); font-weight: 700; font-size: 0.72em; color: var(--ink); display: block; }
+.val-body span { font-size: 0.56em; color: var(--ink-soft); }
+
+.val-fail { font-family: var(--font-mono); font-size: 0.48em; font-weight: 600; color: var(--denied);
+  background: rgba(217,58,64,0.10); padding: 0.35em 0.7em; border-radius: 999px; flex: 0 0 auto; }
+.val-ok { font-family: var(--font-mono); font-size: 0.48em; font-weight: 600; color: var(--granted);
+  background: rgba(15,157,107,0.12); padding: 0.35em 0.7em; border-radius: 999px; flex: 0 0 auto; }
+
+.val-arrow { width: 26px; height: 26px; color: var(--steel); align-self: center; margin: 0.1em 0; }
+
+/* ---- Slide 12: ronda 2, construccio dinamica ---------------------------- */
+.r2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; margin: 0.6em 0 0.4em; }
+.r2-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.8em 1em; }
+.r2-cond { font-family: var(--font-mono); font-size: 0.56em; color: var(--ink-soft); margin-bottom: 0.6em; }
+.r2-cond b { color: var(--ink); font-weight: 700; }
+.r2-kw { color: var(--steel); font-weight: 700; background: var(--steel-soft); padding: 0.1em 0.4em; border-radius: 5px; }
+
+.r2-attrs { display: flex; flex-wrap: wrap; gap: 0.45em; }
+.r2-attr { font-family: var(--font-mono); font-size: 0.5em; font-weight: 500; padding: 0.4em 0.7em; border-radius: 8px; }
+.r2-attr.reveal { background: var(--steel-soft); color: var(--steel); }
+.r2-attr.zkp { background: rgba(15,157,107,0.10); color: var(--granted); display: inline-flex; align-items: center; gap: 0.4em; }
+.r2-attr.zkp em { font-style: normal; font-size: 0.8em; font-weight: 700; background: var(--granted); color: #fff; padding: 0.05em 0.35em; border-radius: 4px; }
+
+.r2-combine { font-family: var(--font-display); font-weight: 600; font-size: 0.66em; color: var(--ink-soft);
+  text-align: center; margin: 0.3em 0 0.7em; }
+.r2-combine b { color: var(--ink); }
+
+.r2-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
+.r2-key { display: flex; align-items: flex-start; gap: 0.7em; background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 12px; padding: 0.7em 0.9em; }
+.r2-key svg { width: 28px; height: 28px; color: var(--steel); flex: 0 0 auto; margin-top: 0.1em; }
+.r2-key div { font-size: 0.6em; color: var(--ink-soft); line-height: 1.3; }
+.r2-key b { display: block; color: var(--ink); font-weight: 700; font-size: 1.05em; margin-bottom: 0.1em; }
+.r2-attr.hidden { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--line); }
+
+/* ---- Slide 12b: la Verifiable Presentation ------------------------------ */
+.vp-scene { display: grid; grid-template-columns: auto 1fr; gap: 1.6em; align-items: center; margin: 0.5em 0 0.3em; }
+
+/* mobil mes alt, aspecte de telefon */
+.vp-phone-body { width: 190px !important; min-height: 300px; display: flex; flex-direction: column; }
+.vp-phone-body .cred { margin-top: 0.2em; }
+.vp-phone { display: flex; justify-content: center; position: relative; }
+.vp-out { position: absolute; right: -22px; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%; background: var(--steel); color: #fff;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(1,74,176,0.3); z-index: 3; }
+.vp-out svg { width: 24px; height: 24px; }
+
+/* La caixa VP */
+.vp-box { border: 2px solid var(--steel); border-radius: 16px; background: var(--surface);
+  box-shadow: 0 8px 28px rgba(20,33,46,0.08); padding: 0.9em 1em; }
+.vp-box-head { display: flex; align-items: center; gap: 0.6em; padding-bottom: 0.6em;
+  margin-bottom: 0.6em; border-bottom: 1px solid var(--line); }
+.vp-badge { font-family: var(--font-mono); font-weight: 700; font-size: 0.6em; color: #fff;
+  background: var(--steel); padding: 0.3em 0.6em; border-radius: 7px; letter-spacing: 0.05em; flex: 0 0 auto; }
+.vp-box-title { font-family: var(--font-display); font-weight: 600; font-size: 0.6em; color: var(--ink); line-height: 1.3; }
+.vp-sub { font-family: var(--font-mono); font-weight: 400; font-size: 0.82em; color: var(--muted); }
+
+.vp-attrs { display: grid; gap: 0.4em; }
+.vp-attr { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.8em;
+  border-radius: 10px; padding: 0.5em 0.8em; font-size: 0.6em; box-sizing: border-box; width: 100%; }
+.vp-name { font-family: var(--font-mono); font-weight: 600; }
+.vp-val { font-family: var(--font-mono); font-size: 0.9em; }
+.vp-type { font-family: var(--font-mono); font-size: 0.72em; font-weight: 600; letter-spacing: 0.03em;
+  padding: 0.2em 0.55em; border-radius: 999px; }
+
+/* revelat: verd */
+.vp-attr.reveal { background: rgba(15,157,107,0.07); border: 1px solid rgba(15,157,107,0.25); }
+.vp-attr.reveal .vp-name { color: var(--ink); }
+.vp-attr.reveal .vp-val { color: var(--granted); }
+.vp-attr.reveal .vp-type { background: rgba(15,157,107,0.14); color: var(--granted); }
+
+/* predicat ZKP: verd amb emfasi */
+.vp-attr.zkp { background: rgba(15,157,107,0.07); border: 1px solid rgba(15,157,107,0.35); }
+.vp-attr.zkp .vp-name { color: var(--ink); }
+.vp-attr.zkp .vp-val { color: var(--granted); font-weight: 700; }
+.vp-attr.zkp .vp-type.zkp-t { background: var(--granted); color: #fff; }
+
+/* no revelat: gris */
+.vp-attr.hidden { background: var(--surface-2); border: 1px dashed var(--line); }
+.vp-attr.hidden .vp-name { color: var(--muted); }
+.vp-attr.hidden .vp-val { color: var(--muted); }
+.vp-attr.hidden .vp-type { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+
+/* ---- Slide 13: mecanisme Bitstring Status List -------------------------- */
+.rev-scene { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1em; align-items: center; margin: 0.6em 0 0.3em; }
+
+.rev-node { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.8em 0.9em; }
+.rev-node-head { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.6em; }
+.rev-ic { width: 38px; height: 38px; border-radius: 10px; background: var(--steel-soft); color: var(--steel);
+  display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; font-size: 0.6em; }
+.rev-ic.v { background: rgba(15,157,107,0.12); color: var(--granted); }
+.rev-node-head b { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink); }
+
+/* Bitstring visual */
+.bitstring { display: flex; gap: 4px; margin-bottom: 0.5em; }
+.bit { width: 26px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.6em; }
+.bit.b0 { background: rgba(15,157,107,0.12); color: var(--granted); }
+.bit.b1 { background: rgba(217,58,64,0.14); color: var(--denied); }
+
+.rev-legend { display: flex; gap: 1em; font-family: var(--font-mono); font-size: 0.44em; color: var(--ink-soft); margin-bottom: 0.4em; }
+.rev-legend i.sq { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 0.3em; vertical-align: middle; }
+.rev-legend i.sq.v { background: var(--granted); } .rev-legend i.sq.r { background: var(--denied); }
+.rev-tag { font-family: var(--font-mono); font-size: 0.44em; color: var(--muted); letter-spacing: 0.03em; }
+
+/* Canal central: document signat */
+.rev-channel { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
+.rev-doc { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.5em 0.7em; text-align: center; }
+.rev-doc-t { font-family: var(--font-mono); font-size: 0.5em; color: var(--ink); display: block; }
+.rev-doc-sig { display: inline-flex; align-items: center; gap: 0.3em; font-family: var(--font-mono); font-size: 0.44em;
+  color: var(--steel); margin-top: 0.3em; }
+.rev-doc-sig svg { width: 14px; height: 14px; }
+.rev-flow { display: flex; flex-direction: column; align-items: center; color: var(--steel); }
+.rev-flow svg { width: 40px; height: 24px; }
+.rev-flow-lbl { font-family: var(--font-mono); font-size: 0.42em; color: var(--muted); letter-spacing: 0.04em; }
+
+/* Passos del verificador */
+.rev-steps { margin: 0; padding-left: 1.2em; }
+.rev-steps li { font-size: 0.56em; color: var(--ink-soft); margin: 0.35em 0; line-height: 1.3; }
+.rev-steps b { color: var(--ink); }
+.rev-no { font-family: var(--font-mono); font-weight: 600; color: var(--denied); font-size: 0.92em; }
+
+/* ---- Slide 13: bloc del sistema natiu descartat ------------------------- */
+.rev-native { background: rgba(217,58,64,0.04); border: 1px solid rgba(217,58,64,0.2);
+  border-radius: 14px; padding: 0.7em 1em; margin-top: 0.2em; }
+.rev-native-head { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.6em; }
+.rev-x { width: 30px; height: 30px; border-radius: 8px; background: rgba(217,58,64,0.12); color: var(--denied);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7em; flex: 0 0 auto; }
+.rev-native-head b { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink); display: block; }
+.rev-native-head span { font-family: var(--font-mono); font-size: 0.48em; color: var(--muted); letter-spacing: 0.03em; }
+
+.rev-native-flow { display: flex; align-items: center; gap: 1em; }
+.rev-nf-item { display: flex; align-items: center; gap: 0.6em; flex: 1;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.6em 0.8em; }
+.rev-nf-item svg { width: 26px; height: 26px; color: var(--denied); flex: 0 0 auto; }
+.rev-nf-item span { font-size: 0.6em; color: var(--ink-soft); line-height: 1.3; }
+.rev-nf-item b { color: var(--ink); font-weight: 700; }
+.rev-nf-arrow { width: 30px; height: 30px; color: var(--muted); flex: 0 0 auto; }
+
+/* ---- Slide 14: panell de control d'acces -------------------------------- */
+.panel-scene { display: grid; grid-template-columns: auto 1fr; gap: 1.8em; align-items: center; margin-top: 0.7em; }
+
+.panel-mock { width: 300px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(20,33,46,0.12); overflow: hidden; }
+.panel-bar { background: var(--ink); padding: 0.5em 0.8em; display: flex; align-items: center; gap: 0.5em; }
+.panel-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--granted); box-shadow: 0 0 8px var(--granted); }
+.panel-title { font-family: var(--font-mono); font-size: 0.44em; color: #fff; letter-spacing: 0.1em; }
+.panel-body { padding: 1.2em; display: flex; flex-direction: column; align-items: center; gap: 0.9em; }
+.panel-qr { width: 130px; height: 130px; color: var(--ink); background: #fff; border: 1px solid var(--line);
+  border-radius: 10px; padding: 0.6em; }
+.panel-qr svg { width: 100%; height: 100%; }
+.panel-verdict { display: flex; gap: 0.6em; }
+.pv { font-family: var(--font-mono); font-weight: 700; font-size: 0.5em; padding: 0.4em 0.7em; border-radius: 8px; letter-spacing: 0.04em; }
+.pv.granted { background: rgba(15,157,107,0.12); color: var(--granted); }
+.pv.denied { background: rgba(217,58,64,0.12); color: var(--denied); }
+
+.panel-feat { display: flex; align-items: flex-start; gap: 0.8em; margin: 0.5em 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0.7em 0.9em; }
+.panel-feat svg { width: 30px; height: 30px; color: var(--steel); flex: 0 0 auto; margin-top: 0.1em; }
+.panel-feat div { font-size: 0.62em; color: var(--ink-soft); line-height: 1.3; }
+.panel-feat b { display: block; color: var(--ink); font-weight: 700; font-size: 1.05em; margin-bottom: 0.1em; }
+
+/* ---- Slide 15: resultats (casos + latencia) ----------------------------- */
+.res-cols { display: grid; grid-template-columns: 1.1fr 1fr; gap: 1.8em; margin-top: 0.7em; align-items: start; }
+
+.res-cases table { margin-top: 0; }
+.res-extra { font-family: var(--font-display); font-weight: 600; font-size: 0.62em; color: var(--ink-soft); margin-top: 0.7em; }
+.res-extra .k { color: var(--steel); }
+
+/* Latencia */
+.res-lat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 1em 1.2em; }
+.lat-num { font-family: var(--font-display); font-weight: 800; font-size: 2.4em; color: var(--ink); line-height: 1; letter-spacing: -0.02em; }
+.lat-num span { color: var(--muted); margin: 0 0.05em; }
+.lat-num em { font-style: normal; font-size: 0.5em; color: var(--muted); font-weight: 600; margin-left: 0.1em; }
+.lat-sub { font-family: var(--font-mono); font-size: 0.5em; color: var(--muted); letter-spacing: 0.03em; margin: 0.3em 0 0.9em; }
+
+.lat-bars { display: flex; flex-direction: column; gap: 0.55em; }
+.lat-bar { display: flex; align-items: center; gap: 0.7em; }
+.lat-lbl { font-family: var(--font-mono); font-size: 0.48em; color: var(--ink-soft); width: 9em; flex: 0 0 auto; letter-spacing: 0.02em; }
+.lat-fill { height: 14px; border-radius: 7px; }
+.lat-fill.no { background: rgba(217,58,64,0.55); }
+.lat-fill.ok { background: var(--granted); }
+.lat-fill.big { width: 100%; }
+.lat-fill.mid { width: 55%; }
+.lat-fill.tiny { width: 8%; }
+
+/* ---- Slide 18: cicle complet -------------------------------------------- */
+.cycle { display: flex; align-items: center; justify-content: center; gap: 0.6em; flex-wrap: wrap; margin: 0.6em 0 1em; }
+.cyc-step { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink);
+  background: var(--steel-soft); border: 1px solid rgba(1,74,176,0.15); border-radius: 999px; padding: 0.45em 1em; }
+.cyc-arr { width: 26px; height: 26px; color: var(--steel); flex: 0 0 auto; }
+
+/* ---- Slide 19: limitacions del prototip --------------------------------- */
+.lim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9em; margin: 0.6em 0 0.3em; }
+.lim-card { display: flex; align-items: flex-start; gap: 0.8em;
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--amber);
+  border-radius: 0 12px 12px 0; padding: 0.7em 0.9em; box-shadow: 0 1px 3px rgba(20,33,46,0.05); }
+.lim-n { font-family: var(--font-mono); font-weight: 600; font-size: 0.6em; color: var(--amber);
+  background: rgba(199,123,10,0.10); border-radius: 8px; padding: 0.3em 0.55em; flex: 0 0 auto; }
+.lim-card div { font-size: 0.62em; color: var(--ink-soft); line-height: 1.3; }
+.lim-card b { display: block; color: var(--ink); font-weight: 700; font-size: 1.05em; margin-bottom: 0.15em; }
+
+/* ---- Slide 20: linies de treball futur ---------------------------------- */
+.fut-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; margin-top: 0.7em; }
+.fut-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20,33,46,0.06); padding: 0.9em 1.1em; }
+.fut-head { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.6em; padding-bottom: 0.5em; border-bottom: 1px solid var(--line); }
+.fut-head b { font-family: var(--font-display); font-weight: 700; font-size: 0.72em; color: var(--ink); }
+.fut-ic { width: 40px; height: 40px; border-radius: 10px; background: var(--steel-soft); color: var(--steel);
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.fut-ic svg { width: 24px; height: 24px; }
+.fut-ic.v { background: rgba(15,157,107,0.12); color: var(--granted); }
+.fut-list { list-style: none; margin: 0; padding: 0; }
+.fut-list li { position: relative; padding-left: 1.1em; font-size: 0.6em; color: var(--ink-soft); margin: 0.4em 0; line-height: 1.3; }
+.fut-list li::before { content: ""; position: absolute; left: 0; top: 0.45em; width: 7px; height: 7px; background: var(--steel); border-radius: 2px; }
+.fut-list .k { color: var(--steel); font-weight: 600; }
+
+/* ---- Slide 21: tancament, frase de gracies ------------------------------ */
+.closing-thanks { font-family: var(--font-display); font-weight: 600; font-size: 0.8em; color: var(--ink-soft); margin-top: 1.4em; }
+
+/* ---- Slide 04: dos punts previs ----------------------------------------- */
+.jwt-points { margin-top: 0.2em; }
+.jwt-points li { font-size: 0.82em; }
+
+/* ---- Backup D: les tres capes ------------------------------------------- */
+.layers { display: flex; flex-direction: column; gap: 0.6em; margin: 0.6em 0 0.3em; }
+.layer-row { display: flex; align-items: stretch; gap: 0.9em;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(20,33,46,0.05); padding: 0.6em 0.9em; }
+.layer-row.didcomm-row { border-color: var(--granted); background: rgba(15,157,107,0.04); }
+
+.layer-tag { font-family: var(--font-mono); font-weight: 700; font-size: 0.5em; letter-spacing: 0.06em;
+  writing-mode: horizontal-tb; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; padding: 0.4em 0.6em; min-width: 5em; flex: 0 0 auto; }
+.layer-tag.net { background: rgba(217,58,64,0.12); color: var(--denied); }
+.layer-tag.http { background: var(--surface-2); color: var(--muted); }
+.layer-tag.e2e { background: rgba(15,157,107,0.14); color: var(--granted); }
+
+.layer-body { flex: 1; }
+.layer-name { font-family: var(--font-display); font-weight: 700; font-size: 0.66em; color: var(--ink);
+  display: flex; align-items: center; gap: 0.4em; }
+.llock { width: 18px; height: 18px; color: var(--granted); }
+
+.layer-flow { display: flex; align-items: center; gap: 0.6em; margin-top: 0.4em; }
+.lnode { font-family: var(--font-mono); font-size: 0.5em; color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 7px; padding: 0.3em 0.7em; }
+.lnode.mid { background: rgba(217,58,64,0.10); border-color: rgba(217,58,64,0.3); color: var(--denied); }
+.lhop { font-family: var(--font-mono); font-size: 0.55em; color: var(--muted); }
+.lhop.e2e-hop { color: var(--granted); font-weight: 600; letter-spacing: 0.05em; }
+
+.layer-note { font-family: var(--font-mono); font-size: 0.46em; color: var(--ink-soft); margin-top: 0.35em; letter-spacing: 0.02em; }
+.layer-note.no { color: var(--denied); }
+.layer-note.ok { color: var(--granted); }

@@ -1,1 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defensa TFG · Identitat Sobirana per al control d'accessos industrial</title>
 
+<!-- ===== Reveal.js base (CDN) ===== -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+  <!-- ===== Fonts (Google Fonts) ===== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+
+  <!-- ===== Tema propi (identitat visual: NO editar aqui) ===== -->
+  <link rel="stylesheet" href="custom.css">
+</head>
+<body>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================================
+           01 · PORTADA
+           ============================================================ -->
+      <section class="cover center-block">
+        <img class="brand-logo" src="LogoUIB.jpg" alt="UIB">
+        <div class="eyebrow">TFG <span class="num">·</span> GTEL <span class="num">·</span> UIB</div>
+        <h1>Disseny i implementació d'una arquitectura SSI per a l'automatització del control d'accessos en entorns industrials</h1>
+        <div class="meta">
+          <b>Àngel Joan Gamundí</b><br>
+          Tutors: Macià Mut Puigserver i Maria Magdalena Payeras Capellà<br>
+          Escola Politècnica Superior, UIB
+        </div>
+      </section>
+
+    <section class="index">
+  <div class="eyebrow"><span>ÍNDEX</span></div>
+  <div class="steps index-list">
+    <div class="step"><span class="idx">01</span><span class="body"><b>Context i problema</b></span></div>
+    <div class="step"><span class="idx">02</span><span class="body"><b>Arquitectura</b></span></div>
+    <div class="step"><span class="idx">03</span><span class="body"><b>Implementació</b></span></div>
+    <div class="step"><span class="idx">04</span><span class="body"><b>Resultats i validació</b></span></div>
+    <div class="step"><span class="idx">05</span><span class="body"><b>Demostració en viu</b></span></div>
+    <div class="step"><span class="idx">06</span><span class="body"><b>Conclusions i treballs futurs</b></span></div>
+  </div>
+  <aside class="notes">
+    No leas la lista entera palabra por palabra: dilo con tus propias palabras siguiendo el guion que ya tienes. Esta slide es solo el ancla visual del recorrido.
+  </aside>
+</section>
+
+ <!-- ============================================================
+     02 · CONTEXT I PROBLEMA
+     ============================================================ -->
+<section>
+  <div class="eyebrow"><span class="num">02</span> · CONTEXT</div>
+  <p class="lead">La gestió CAE viu en paper i PDF</p>
+  <div class="doc-scene">
+    <ul class="clean doc-list">
+      <li>Certificats mèdics d'aptitud</li>
+      <li>Formacions obligatòries de prevenció</li>
+      <li>Permisos i homologacions professionals</li>
+    </ul>
+    <svg class="doc-arrow-simple" viewBox="0 0 24 24" fill="none">
+      <path d="M4 12 H18 M18 12 L13 7 M18 12 L13 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="doc-mock">
+      <div class="ln w80"></div>
+      <div class="ln w60"></div>
+      <div class="ln w40"></div>
+      <div class="ln w80"></div>
+      <div class="ln w60"></div>
+      <div class="stamp">VÀLID FINS ?</div>
+    </div>
+  </div>
+  <ul class="clean" style="margin-top: 1.4em;">
+    <li>Documents <strong>estàtics</strong>  <span class="chip no">⊘ sense revocació</span></li>
+    <li>Verificació <strong>manual</strong></li>
+    <li>El treballador <strong>no custodia</strong> els seus documents</li>
+  </ul>
+</section>
+
+
+<!-- ============================================================
+     03 · QUÈ ÉS SSI
+     ============================================================ -->
+<section>
+  <div class="eyebrow"><span class="num">02</span> · LA IDEA</div>
+  <p class="lead" style="max-width:none;">El model actual contra el model proposat</p>
+
+  <div class="clock-float">
+    <div class="clock-face">
+      <div class="clock-hand h"></div>
+      <div class="clock-hand m"></div>
+    </div>
+  </div>
+
+  <ul class="clean">
+    <li>Una persona designada al DCAE valida tota la documentació</li>
+    <li>Procés manual, lent i propens a errors humans</li>
+    <li>Sense disponibilitat fora de l'horari laboral</li>
+  </ul>
+
+  <div class="turn-arrow">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M12 4 V18 M12 18 L7 13 M12 18 L17 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <p class="lead" style="max-width:none; font-size:0.95em;">Identitat Sobirana <em>(Self-Sovereign Identity)</em>: cada individu custodia les seves credencials al dispositiu i decideix què comparteix</p>
+
+  <ul class="clean" style="margin-top:0.6em;">
+    <li>El treballador presenta les credencials, ningú les custodia per ell</li>
+    <li>Cap dependència d'un servidor central</li>
+  </ul>
+</section>
+
+<!-- ============================================================
+           04 · PER QUÈ NO UN JWT/PDF  (dos punts + monolitic vs granular)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">03</span> · Per què no un PDF signat?</div>
+
+        <!-- Dos punts breus abans del mock -->
+        <ul class="clean jwt-points">
+          <li><strong>Depèn d'un servidor central</strong> la clau pública viu al servidor: si cau, no hi ha verificació</li>
+          <li><strong>No es pot revocar en temps real</strong></li>
+        </ul>
+
+        <!-- Monolitic vs granular -->
+        <p class="lead" style="max-width:none; margin-top:0.4em">Granularitat per atributs, no "tot o res"</p>
+
+        <div class="sig-scene">
+          <div class="sig-col">
+            <div class="sig-cap">Signatura monolítica <span class="sig-sub">JWT / PDF</span></div>
+            <div class="mono-doc">
+              <div class="mono-lock">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M6 10V8a6 6 0 0112 0v2M5 10h14v10H5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></svg>
+              </div>
+              <div class="ln w80"></div>
+              <div class="ln w60"></div>
+              <div class="ln w40"></div>
+              <div class="ln w80"></div>
+            </div>
+            <div class="sig-tag no">Tot o res</div>
+          </div>
+
+          <svg class="sig-arrow" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12H18M18 12L13 7M18 12L13 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <div class="sig-col">
+            <div class="sig-cap">CL-Signatures <em>(AnonCreds)</em></div>
+            <div class="attrs sig-attrs">
+              <div class="attr on"><span class="dot"></span><span class="k">Qualificació soldador</span><span class="v">✓ Provat</span></div>
+              <div class="attr off"><span class="dot"></span><span class="k">Nom complet</span><span class="v">Ocult</span></div>
+              <div class="attr off"><span class="dot"></span><span class="k">DNI</span><span class="v">Ocult</span></div>
+              <div class="attr off"><span class="dot"></span><span class="k">Data de naixement</span><span class="v">Ocult</span></div>
+            </div>
+            <div class="sig-tag ok">Atribut per atribut</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           04b · L'ÀNCORA DE CONFIANÇA (triangle)  [va ABANS de la 05]
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">04</span> · ARQUITECTURA · CONFIANÇA</div>
+        <p class="tagline">Confien <span class="k">sense conèixer-se</span></p>
+
+        <div class="trust-tri">
+          <!-- Emissor (dalt esquerra) -->
+          <div class="tri-node emissor">
+            <div class="tri-ic">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <b>Emissor</b>
+          </div>
+
+          <!-- Verificador (dalt dreta) -->
+          <div class="tri-node verificador">
+            <div class="tri-ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <b>Verificador</b>
+          </div>
+
+          <!-- Titular (baix mig) -->
+          <div class="tri-node titular">
+            <div class="tri-ic">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="12" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <b>Titular</b>
+            <span>wallet al mòbil</span>
+          </div>
+
+          <!-- Ancora central: blockchain -->
+          <div class="tri-anchor">
+            <div class="tri-anchor-ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M4 12l8 4 8-4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            </div>
+            <b>Blockchain</b>
+            <span>BCovrin · DID + Schema + CredDef</span>
+          </div>
+
+<!-- Connexions SVG -->
+          <svg class="tri-wires" viewBox="0 0 1000 520" preserveAspectRatio="none">
+            <defs>
+              <marker id="triArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="var(--steel)"></path>
+              </marker>
+            </defs>
+            <!-- emissor <-> verificador: no es coneixen (discontinu) -->
+            <line class="tri-line dashed" x1="230" y1="110" x2="770" y2="110"></line>
+<!-- titular es mou fisicament (solid, amb sentit de flux, simetric) -->
+            <line class="tri-line move" x1="200" y1="135" x2="435" y2="350" marker-end="url(#triArrow)"></line>
+            <line class="tri-line move" x1="565" y1="350" x2="800" y2="135" marker-end="url(#triArrow)"></line>
+            <!-- tots ancorats al registre (fi, cap al centre) -->
+            <line class="tri-line anchor" x1="250" y1="120" x2="480" y2="250"></line>
+            <line class="tri-line anchor" x1="750" y1="120" x2="520" y2="250"></line>
+            <line class="tri-line anchor" x1="500" y1="420" x2="500" y2="320"></line>
+          </svg>
+
+          <span class="tri-badge">no es coneixen</span>
+        </div>
+
+        <p class="note">La confiança criptogràfica ve sempre del <span class="k">registre</span>, no d'un canal directe entre emissor i verificador.</p>
+      </section>
+
+      <!-- ============================================================
+           04c · COM ES COMUNIQUEN: DIDComm  [va entre 04b i 05]
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">04</span> · ARQUITECTURA · COMUNICACIÓ</div>
+        <p class="tagline">Dos canals xifrats, <span class="k">sempre pel titular</span></p>
+
+        <div class="didcomm">
+          <!-- Emissor -->
+          <div class="dc-node">
+            <div class="dc-ic">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <b>Emissor</b>
+          </div>
+
+          <!-- Canal 1 -->
+          <div class="dc-channel">
+            <span class="dc-lock">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0110 0v2M6 10h12v9H6z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="dc-label">DIDComm</span>
+            <span class="dc-sub">credencial signada</span>
+          </div>
+
+          <!-- Titular (peca central) -->
+          <div class="dc-node titular">
+            <div class="dc-ic">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="12" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <b>Titular</b>
+            <span class="dc-node-sub">peça activa</span>
+          </div>
+
+          <!-- Canal 2 -->
+          <div class="dc-channel">
+            <span class="dc-lock">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0110 0v2M6 10h12v9H6z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="dc-label">DIDComm</span>
+            <span class="dc-sub">prova criptogràfica</span>
+          </div>
+
+          <!-- Verificador -->
+          <div class="dc-node">
+            <div class="dc-ic v">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <b>Verificador</b>
+          </div>
+        </div>
+
+        <!-- Barra "no hi ha canal directe" per sobre dels extrems -->
+        <div class="dc-nolink">
+          <span class="dc-nolink-badge">cap canal directe entre emissor i verificador</span>
+        </div>
+
+        <p class="note">La confiança ve del <span class="k">registre</span>; les dades sempre passen pel <span class="k">dispositiu de l'operari</span>.</p>
+      </section>
+
+<!-- ============================================================
+           05 · ARQUITECTURA: TRES EMISSORS SOBIRANS  (flux complet)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">04</span> · ARQUITECTURA</div>
+        <p class="tagline">Tres emissors sobirans, <span class="k">cap coordinació</span></p>
+
+        <div class="arch">
+          <!-- Fila 1: tres emissors, cadascun amb clau + CredDef propia -->
+          <div class="arch-issuers">
+            <div class="arch-node issuer-node">
+              <div class="arch-ic">OT</div>
+              <div class="arch-name">Oficina Tècnica</div>
+              <div class="arch-sub">Ordre de treball</div>
+              <div class="arch-key">clau + CredDef pròpia</div>
+            </div>
+            <div class="arch-node issuer-node">
+              <div class="arch-ic">ATEX</div>
+              <div class="arch-name">Emissor ATEX</div>
+              <div class="arch-sub">Atmosferes explosives</div>
+              <div class="arch-key">clau + CredDef pròpia</div>
+            </div>
+            <div class="arch-node issuer-node">
+              <div class="arch-ic">S</div>
+              <div class="arch-name">Emissor soldador</div>
+              <div class="arch-sub">Homologació professional</div>
+              <div class="arch-key">clau + CredDef pròpia</div>
+            </div>
+          </div>
+
+          <!-- Fletxes emissors -> wallet -->
+          <svg class="arch-wires down" viewBox="0 0 1000 90" preserveAspectRatio="none">
+            <path d="M167 4 C167 45, 500 45, 500 84" />
+            <path d="M500 4 L500 84" />
+            <path d="M833 4 C833 45, 500 45, 500 84" />
+            <path d="M500 84 l-6 -10 M500 84 l6 -10" />
+          </svg>
+
+          <!-- Fila 2: wallet del titular -->
+          <div class="arch-mid">
+            <div class="arch-wallet">
+              <div class="arch-wallet-ic">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="14.5" r="1.4" fill="currentColor"/></svg>
+              </div>
+              <div class="arch-wallet-txt">
+                <b>Wallet de l'operari</b>
+                <span>BC Wallet · 3 credencials</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fletxa wallet -> verificador -->
+          <svg class="arch-wires down single" viewBox="0 0 1000 60" preserveAspectRatio="none">
+            <path d="M500 4 L500 54" />
+            <path d="M500 54 l-6 -10 M500 54 l6 -10" />
+          </svg>
+
+          <!-- Fila 3: verificador -->
+          <div class="arch-mid">
+            <div class="arch-node verifier-node">
+              <div class="arch-ic v">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="arch-name">Verificador</div>
+              <div class="arch-sub">Punt de control d'accés</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           06 · DEFINICIONS CLAU: AnonCreds + ABAC dinàmic
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">05</span> · CREDENCIALS</div>
+        <p class="lead" style="max-width:none">Tipus de credencials i accés</p>
+
+        <div class="def-cols">
+
+          <!-- CONCEPTE 1: AnonCreds -->
+          <div class="def-card">
+            <div class="def-head">
+              <span class="def-tag">FORMAT</span>
+              <h3>AnonCreds</h3>
+            </div>
+            <div class="def-row">
+              <div class="def-ic">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 5c-4 0-7 3.5-8 7 1 3.5 4 7 8 7s7-3.5 8-7c-1-3.5-4-7-8-7z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg>
+              </div>
+              <div><b>Revelació selectiva</b>Mostrar un atribut, amagar la resta</div>
+            </div>
+            <div class="def-row">
+              <div class="def-ic">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 8v4M12 15v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div><b>Prova de coneixement zero</b>Demostrar una propietat sense revelar el valor</div>
+            </div>
+            <div class="def-example">Provar que un certificat <em>no ha caducat</em> sense ensenyar la data</div>
+          </div>
+
+          <!-- CONCEPTE 2: ABAC dinàmic -->
+          <div class="def-card">
+            <div class="def-head">
+              <span class="def-tag">MODEL D'ACCÉS</span>
+              <h3>ABAC dinàmic</h3>
+            </div>
+            <div class="def-row">
+              <div class="def-ic">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </div>
+              <div><b>La política surt de l'ordre de treball</b>No hi ha regles fixes a la porta</div>
+            </div>
+            <div class="def-row">
+              <div class="def-ic">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div><b>Construïda en temps d'execució</b>L'OT diu quins certificats calen aquell dia</div>
+            </div>
+            <div class="def-example key">La política d'accés és <em>la credencial mateixa</em></div>
+          </div>
+
+        </div>
+      </section>
+
+
+<!-- ============================================================
+           08 · LA FÀBRICA D'AGENTS
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · AGENTS</div>
+        <p class="lead" style="max-width:none">Un únic lloc crea tots els agents</p>
+
+        <div class="factory">
+          <!-- La fabrica: base compartida -->
+          <div class="fab-core">
+            <div class="fab-core-title">FabricaAgents.ts</div>
+            <div class="fab-mods">
+              <span class="fab-mod">Askar<small>claus</small></span>
+              <span class="fab-mod">AnonCreds<small>credencials</small></span>
+              <span class="fab-mod">IndyVdr<small>blockchain</small></span>
+              <span class="fab-mod">DIDComm<small>comunicació</small></span>
+            </div>
+          </div>
+
+          <!-- Fletxa -->
+          <svg class="fab-arrow" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4V18M12 18L7 13M12 18L17 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <!-- Els quatre agents que en surten -->
+          <div class="fab-agents">
+            <div class="fab-agent"><span class="fab-ag-ic">OT</span><span class="fab-ag-name">Ordre de treball</span></div>
+            <div class="fab-agent"><span class="fab-ag-ic">ATEX</span><span class="fab-ag-name">Certificació ATEX</span></div>
+            <div class="fab-agent"><span class="fab-ag-ic">S</span><span class="fab-ag-name">Soldador</span></div>
+            <div class="fab-agent verifier"><span class="fab-ag-ic">V</span><span class="fab-ag-name">Verificador</span></div>
+          </div>
+        </div>
+
+        <p class="note">Tots comparteixen la mateixa base; el <em>setup</em> de cada emissor s'executa un únic cop.</p>
+      </section>
+
+<!-- ============================================================
+           09 · ELS TRES EMISSORS  (nomes la captura, sense text)
+           ============================================================ -->
+      <section class="ot-full">
+        <img src="FormulariOT.png" alt="Formulari web d'emissió d'ordres de treball de l'Oficina Tècnica">
+      </section>
+
+
+<!-- ============================================================
+           10 · EL COR: DIAGRAMA DE SEQÜÈNCIA  (nomes l'esquema)
+           ============================================================ -->
+      <section class="ot-full">
+        <img src="diagrama_sequencia_abac.png" alt="Seqüència de les dues rondes de verificació ABAC">
+      </section>
+
+<!-- ============================================================
+           11 · ORDRE ESTRICTE DE VALIDACIÓ (ronda 1)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · ORDRE ESTRICTE</div>
+        <p class="lead" style="max-width:none">Ronda 1: s'atura al primer que falli</p>
+
+        <div class="val-flow">
+          <div class="val-step">
+            <span class="val-n">01</span>
+            <div class="val-body">
+              <b>Data</b>
+              <span>La data de l'OT ha de ser la d'avui</span>
+            </div>
+            <span class="val-fail">si no → DENEGAT</span>
+          </div>
+
+          <svg class="val-arrow" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M12 18l-5-5M12 18l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+          <div class="val-step">
+            <span class="val-n">02</span>
+            <div class="val-body">
+              <b>Revocació</b>
+              <span>Consulta la Bitstring Status List de l'emissor OT</span>
+            </div>
+            <span class="val-fail">si revocada → DENEGAT</span>
+          </div>
+
+          <svg class="val-arrow" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M12 18l-5-5M12 18l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+          <div class="val-step ok-step">
+            <span class="val-n ok">03</span>
+            <div class="val-body">
+              <b>Riscos i certificacions buits?</b>
+              <span>Si la tasca no requereix res més</span>
+            </div>
+            <span class="val-ok">→ CONCEDIT, sense ronda 2</span>
+          </div>
+        </div>
+
+        <p class="note">Si l'OT declara riscos o certificacions, en canvi, es passa a la <span class="k">ronda 2</span>.</p>
+      </section>
+
+<!-- ============================================================
+           12 · RONDA 2: CONSTRUCCIÓ DINÀMICA
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · RONDA 2</div>
+        <p class="lead" style="max-width:none">La sol·licitud es construeix a mida de l'OT</p>
+
+<div class="r2-cols">
+          <!-- Si riscos conte ATEX -->
+          <div class="r2-card">
+            <div class="r2-cond">si <b>riscos</b> conté <span class="r2-kw">atex</span></div>
+            <div class="r2-attrs">
+              <span class="r2-attr reveal">zona</span>
+              <span class="r2-attr reveal">nivell_atex</span>
+              <span class="r2-attr zkp">data_expiració ≥ avui <em>ZKP</em></span>
+              <span class="r2-attr hidden">id_cert</span>
+              <span class="r2-attr hidden">treballador</span>
+            </div>
+          </div>
+
+          <!-- Si certificacions conte soldador -->
+          <div class="r2-card">
+            <div class="r2-cond">si <b>certificacions</b> conté <span class="r2-kw">soldador</span></div>
+            <div class="r2-attrs">
+              <span class="r2-attr reveal">procés</span>
+              <span class="r2-attr reveal">norma</span>
+              <span class="r2-attr zkp">data_expiració ≥ avui <em>ZKP</em></span>
+              <span class="r2-attr hidden">id_cert</span>
+              <span class="r2-attr hidden">treballador</span>
+            </div>
+          </div>
+        </div>
+        <p class="r2-combine">Si l'OT requereix totes dues, es <b>combinen en una sola prova</b>, un únic gest al mòbil.</p>
+
+        <div class="r2-keys">
+          <div class="r2-key">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0110 0v2M6 10h12v9H6z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div><b>Mateix canal DIDComm</b>ja obert, cap QR nou per a l'operari</div>
+          </div>
+          <div class="r2-key">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div><b>cred_def_id com a restricció</b>rebutja atributs d'un emissor no autoritzat</div>
+          </div>
+        </div>
+      </section>
+
+<!-- ============================================================
+           12b · LA VERIFIABLE PRESENTATION: tres tipus d'atribut
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · PRIVACITAT</div>
+        <p class="lead" style="max-width:none">El verificador no rep la credencial, rep una <em>Verifiable Presentation</em></p>
+
+        <div class="vp-scene">
+<!-- Mobil que presenta -->
+          <div class="vp-phone">
+            <div class="phone vp-phone-body">
+              <div class="screen-label">GENERANT VP</div>
+              <div class="cred"><span class="ic">ATEX</span><div><div class="t">Certificat ATEX</div><div class="s">al wallet</div></div></div>
+            </div>
+            <div class="vp-out">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <!-- La VP com a capa contenidora -->
+          <div class="vp-box">
+            <div class="vp-box-head">
+              <span class="vp-badge">VP</span>
+              <span class="vp-box-title">Prova de possessió d'una credencial vàlida <span class="vp-sub">(signatura CL + link secret, sense revelar-la)</span></span>
+            </div>
+
+            <div class="vp-attrs">
+              <div class="vp-attr reveal"><span class="vp-name">zona</span><span class="vp-val">Zona-1-Gas</span><span class="vp-type">revelat</span></div>
+              <div class="vp-attr reveal"><span class="vp-name">nivell_atex</span><span class="vp-val">II 2G Ex ia IIC T4</span><span class="vp-type">revelat</span></div>
+              <div class="vp-attr zkp"><span class="vp-name">data_expiracio</span><span class="vp-val">≥ avui ✓</span><span class="vp-type zkp-t">predicat ZKP</span></div>
+              <div class="vp-attr hidden"><span class="vp-name">id_cert</span><span class="vp-val">no viatja</span><span class="vp-type">no sol·licitat</span></div>
+              <div class="vp-attr hidden"><span class="vp-name">treballador</span><span class="vp-val">no viatja</span><span class="vp-type">no sol·licitat</span></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="note">El valor de <span class="k">data_expiracio</span> no surt mai: el verificador només rep la prova que la condició es compleix.</p>
+      </section>
+
+<!-- ============================================================
+           13 · REVOCACIÓ: BITSTRING STATUS LIST (natiu vs solucio)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · REVOCACIÓ</div>
+
+        <!-- BLOC 1: el sistema natiu descartat -->
+        <div class="rev-native">
+          <div class="rev-native-head">
+            <span class="rev-x">✕</span>
+            <div><b>Sistema natiu d'AnonCreds</b><span>RevRegs + tails files</span></div>
+          </div>
+          <div class="rev-native-flow">
+            <div class="rev-nf-item">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="3" width="12" height="18" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v6m0 0l-2.5-2.5M12 13l2.5-2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>El titular ha de <b>descarregar un fitxer</b> al mòbil</span>
+            </div>
+            <svg class="rev-nf-arrow" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="rev-nf-item">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5a7 7 0 0114 0M8 15.5a4 4 0 018 0M12 18.5v.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <span>Depèn de <b>connexió</b> i <b>alenteix</b> el flux</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="lead" style="max-width:none; margin-top:0.5em">La meva solució: Bitstring signada, servida per HTTP</p>
+
+        <!-- BLOC 2: el mecanisme -->
+        <div class="rev-scene">
+          <div class="rev-node">
+            <div class="rev-node-head"><span class="rev-ic">OT</span><b>Emissor OT</b></div>
+            <div class="bitstring">
+              <span class="bit b0">0</span><span class="bit b0">0</span><span class="bit b1">1</span><span class="bit b0">0</span><span class="bit b0">0</span><span class="bit b0">0</span><span class="bit b1">1</span><span class="bit b0">0</span>
+            </div>
+            <div class="rev-legend"><span><i class="sq v"></i>0 vàlida</span><span><i class="sq r"></i>1 revocada</span></div>
+            <div class="rev-tag">16.384 bits · GZIP · una per OT</div>
+          </div>
+
+          <div class="rev-channel">
+            <div class="rev-doc">
+              <span class="rev-doc-t">status-list.json</span>
+              <span class="rev-doc-sig">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0110 0v2M6 10h12v9H6z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                signat Ed25519
+              </span>
+            </div>
+            <div class="rev-flow">
+              <span class="rev-flow-lbl">GET · públic</span>
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <div class="rev-node">
+            <div class="rev-node-head"><span class="rev-ic v">V</span><b>Verificador</b></div>
+            <ol class="rev-steps">
+              <li>Verifica la <b>signatura</b> amb la clau pública</li>
+              <li>Llegeix el <b>bit</b> de l'índex de l'OT</li>
+              <li>Bit 1 → <span class="rev-no">DENEGAT</span></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+<!-- ============================================================
+           14 · PANELL DE CONTROL D'ACCÉS
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">06</span> · IMPLEMENTACIÓ · PANELL</div>
+        <p class="lead" style="max-width:none">La cara visible: un QR d'accés, veredicte en temps real</p>
+
+        <div class="panel-scene">
+          <div class="panel-mock">
+            <div class="panel-bar"><span class="panel-dot"></span><span class="panel-title">CONTROL D'ACCÉS</span></div>
+            <div class="panel-body">
+              <div class="panel-qr">
+                <svg viewBox="0 0 25 25" fill="none" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor" d="
+                    M2,2 h7 v7 h-7 Z M3,3 v5 h5 v-5 Z M4,4 h3 v3 h-3 Z
+                    M16,2 h7 v7 h-7 Z M17,3 v5 h5 v-5 Z M18,4 h3 v3 h-3 Z
+                    M2,16 h7 v7 h-7 Z M3,17 v5 h5 v-5 Z M4,18 h3 v3 h-3 Z
+                  "/>
+                  <path fill="currentColor" d="
+                    M10,8 h1 v1 h-1 Z M12,8 h1 v1 h-1 Z M14,8 h1 v1 h-1 Z
+                    M8,10 h1 v1 h-1 Z M8,12 h1 v1 h-1 Z M8,14 h1 v1 h-1 Z
+                  "/>
+                  <path fill="currentColor" d="
+                    M10,2 h2 v2 h-2 Z M13,2 h1 v3 h-1 Z M15,3 h1 v2 h-1 Z
+                    M10,5 h1 v1 h-1 Z M12,5 h2 v1 h-2 Z M14,6 h1 v1 h-1 Z
+                    M10,7 h3 v1 h-3 Z M14,7 h1 v1 h-1 Z
+                    M2,10 h2 v1 h-2 Z M5,10 h1 v2 h-1 Z M7,10 h1 v1 h-1 Z
+                    M10,10 h1 v2 h-1 Z M12,10 h1 v1 h-1 Z M14,10 h2 v2 h-2 Z
+                    M17,10 h1 v1 h-1 Z M19,10 h2 v1 h-2 Z M22,10 h1 v2 h-1 Z
+                    M3,12 h1 v1 h-1 Z M6,12 h1 v1 h-1 Z M11,12 h2 v1 h-2 Z M15,12 h1 v2 h-1 Z M18,12 h1 v1 h-1 Z M20,12 h1 v2 h-1 Z
+                    M2,13 h2 v1 h-2 Z M5,13 h2 v1 h-2 Z M9,13 h1 v2 h-1 Z M12,13 h1 v1 h-1 Z M14,13 h1 v1 h-1 Z M17,13 h2 v1 h-2 Z
+                    M4,14 h1 v1 h-1 Z M7,14 h1 v1 h-1 Z M10,14 h1 v1 h-1 Z M13,14 h1 v2 h-1 Z M19,14 h1 v1 h-1 Z M21,14 h2 v1 h-2 Z
+                    M10,16 h2 v1 h-2 Z M13,16 h1 v1 h-1 Z M15,16 h2 v2 h-2 Z M18,16 h1 v1 h-1 Z M20,16 h1 v1 h-1 Z M22,16 h1 v2 h-1 Z
+                    M10,18 h1 v2 h-1 Z M12,18 h1 v1 h-1 Z M14,18 h1 v1 h-1 Z M17,18 h2 v1 h-2 Z M20,18 h1 v2 h-1 Z
+                    M11,19 h2 v1 h-2 Z M15,19 h1 v2 h-1 Z M18,19 h1 v1 h-1 Z M22,19 h1 v1 h-1 Z
+                    M10,21 h1 v1 h-1 Z M12,21 h1 v2 h-1 Z M14,21 h2 v1 h-2 Z M17,21 h1 v1 h-1 Z M19,21 h2 v2 h-2 Z M22,21 h1 v1 h-1 Z
+                    M10,22 h1 v1 h-1 Z M15,22 h1 v1 h-1 Z M17,22 h1 v1 h-1 Z
+                  "/>
+                </svg>
+              </div>
+              <div class="panel-verdict">
+                <span class="pv granted">✓ CONCEDIT</span>
+                <span class="pv denied">✕ DENEGAT</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="side">
+            <div class="panel-feat">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <div><b>QR d'invitació a la pantalla</b>L'operari l'escaneja i s'obre la connexió DIDComm segura</div>
+            </div>
+            <div class="panel-feat">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><b>Veredicte a la pantalla</b>Verd si es concedeix, vermell si es denega</div>
+            </div>
+            <div class="panel-feat">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4M9 9l6 6m0-6l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div><b>Un QR per intent</b>Es regenera després de cada verificació o timeout: cada operari estrena invitació neta</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+     <!-- ============================================================
+           15 · RESULTATS I VALIDACIÓ  (casos + latencia)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">07</span> · RESULTATS</div>
+        <p class="lead" style="max-width:none">Validació casos i rendiment</p>
+
+        <div class="res-cols">
+          <!-- Taula de casos -->
+          <div class="res-cases">
+            <table>
+              <thead>
+                <tr><th>Cas</th><th>Resultat</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>OT vàlida sense riscos</td><td class="ok">CONCEDIT</td></tr>
+                <tr><td>OT + ATEX + Soldador</td><td class="ok">CONCEDIT</td></tr>
+                <tr><td>OT d'un altre dia</td><td class="no">DENEGAT</td></tr>
+                <tr><td>Credencial revocada</td><td class="no">DENEGAT</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Latencia -->
+          <div class="res-lat">
+            <div class="lat-num">40<span>–</span>60<em>s</em></div>
+            <div class="lat-sub">flux complet, cas més exigent</div>
+            <div class="lat-bars">
+              <div class="lat-bar"><span class="lat-lbl">BCovrin Testnet</span><span class="lat-fill big no"></span></div>
+              <div class="lat-bar"><span class="lat-lbl">Túnel Cloudflare</span><span class="lat-fill mid no"></span></div>
+              <div class="lat-bar"><span class="lat-lbl">Codi + criptografia</span><span class="lat-fill tiny ok"></span></div>
+            </div>
+            <p class="note" style="margin-top:0.6em">El coll d'ampolla és <span class="k">l'entorn</span>, no l'arquitectura. Amb una xarxa Indy pròpia es reduiria dràsticament.</p>
+          </div>
+        </div>
+      </section>
+      <!-- ============================================================
+           17 · DEMO EN VIU
+           ============================================================ -->
+      <section class="divider center-block">
+        <div class="eyebrow"><span class="num">08</span> · DEMO</div>
+        <h2>Demo en viu</h2>
+      </section>
+
+<!-- ============================================================
+           18 · OBJECTIUS ASSOLITS (cicle + tres propietats)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">09</span> · CONCLUSIONS</div>
+        <p class="lead" style="max-width:none">Un cicle complet, tres propietats garantides</p>
+
+        <!-- El cicle -->
+        <div class="cycle">
+          <span class="cyc-step">Emissió</span>
+          <svg class="cyc-arr" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="cyc-step">Recepció al wallet</span>
+          <svg class="cyc-arr" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="cyc-step">Verificació</span>
+          <svg class="cyc-arr" viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="cyc-step">Revocació</span>
+        </div>
+
+        <!-- Les tres propietats -->
+        <div class="goals">
+          <div class="goal">
+            <span class="tag">IDENTITAT SOBIRANA</span>
+            Les credencials viuen al mòbil; el verificador rep <strong>proves</strong>, no atributs en clar
+          </div>
+          <div class="goal">
+            <span class="tag">AUTENTICITAT I INTEGRITAT</span>
+            Signatura AnonCreds validada contra la CredDef; qualsevol alteració invalida la prova
+          </div>
+          <div class="goal">
+            <span class="tag">REVOCACIÓ EN TEMPS REAL</span>
+            El verificador comprova l'estat sense dependre de l'emissor. Validat en concessió i denegació
+          </div>
+        </div>
+      </section>
+
+<!-- ============================================================
+           19 · LIMITACIONS DEL PROTOTIP (les 4 de la memoria)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">09</span> · CONCLUSIONS · LIMITACIONS</div>
+        <p class="lead" style="max-width:none">Decisions de prototip, no de l'arquitectura</p>
+
+        <div class="lim-grid">
+          <div class="lim-card">
+            <span class="lim-n">01</span>
+            <div><b>Persistència de la status list</b>Exclosa del control de versions: un entorn nou arrenca amb la llista buida</div>
+          </div>
+          <div class="lim-card">
+            <span class="lim-n">02</span>
+            <div><b>Dependència de BCovrin Testnet</b>Xarxa pública sense garanties: punt de fallada únic de la demo</div>
+          </div>
+          <div class="lim-card">
+            <span class="lim-n">03</span>
+            <div><b>Sense multi-tenancy</b>Cada emissor és un procés independent amb el seu wallet i port</div>
+          </div>
+          <div class="lim-card">
+            <span class="lim-n">04</span>
+            <div><b>Directori d'operaris en JSON</b>No transaccional: emissions simultànies podrien causar condicions de cursa</div>
+          </div>
+        </div>
+
+        <p class="note">Cap és una limitació de la <span class="k">SSI</span>. Totes són simplificacions conscients amb un camí de solució clar.</p>
+      </section>
+
+<!-- ============================================================
+           20 · LÍNIES DE TREBALL FUTUR (dues vies)
+           ============================================================ -->
+      <section>
+        <div class="eyebrow"><span class="num">09</span> · CONCLUSIONS · FUTUR</div>
+        <p class="lead" style="max-width:none">Dues vies: madurar el sistema i extrapolar l'arquitectura</p>
+
+        <div class="fut-cols">
+          <!-- Via 1: produccio -->
+          <div class="fut-card">
+            <div class="fut-head prod"><span class="fut-ic">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 20h16M6 20V9l6-4 6 4v11M10 20v-5h4v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span><b>Cap a producció</b></div>
+<ul class="fut-list">
+              <li>Xarxa Hyperledger Indy pròpia, gestionada per un consorci</li>
+              <li>Protegir la clau de signatura fora del disc</li>
+              <li>Status list en infraestructura dedicada i replicada</li>
+              <li>Directori d'operaris sobre base de dades transaccional</li>
+            </ul>
+          </div>
+
+          <!-- Via 2: extrapolacio -->
+          <div class="fut-card">
+            <div class="fut-head ext"><span class="fut-ic v">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M2 12h20M12 3a15 15 0 010 18M12 3a15 15 0 000 18" stroke="currentColor" stroke-width="1.7"/></svg>
+            </span><b>Cap a entorns digitals</b></div>
+            <ul class="fut-list">
+              <li>Control d'accés a serveis regulats per edat</li>
+              <li>Majoria d'edat via <span class="k">ZKP</span>, sense revelar la data</li>
+              <li>Sancions lligades a la identitat, no al compte</li>
+              <li>Anonimat davant el servei, complint el RGPD</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+<!-- ============================================================
+           21 · TANCAMENT
+           ============================================================ -->
+      <section class="closing center-block">
+        <div class="eyebrow">FI</div>
+        <p class="lead">Una demostració rigorosa de viabilitat, no un producte de producció</p>
+        <p class="note">Substituir una carpeta de papers que algú revisa a mà per una credencial digital que el treballador controla i que la porta verifica sola.</p>
+        <div class="repo">github.com/angeljoan1/TFG-SSI</div>
+        <p class="closing-thanks">Gràcies. Quedo a la vostra disposició.</p>
+      </section>
+
+      <!-- ============================================================
+           BACKUP A · AnonCreds vs JWT/SAML
+           ============================================================ -->
+      <section class="reserve">
+        <div class="eyebrow"><span class="num">Q&amp;A</span> · BACKUP A</div>
+        <h3>AnonCreds vs JWT / SAML</h3>
+        <table>
+          <thead>
+            <tr><th>Criteri</th><th>JWT / SAML</th><th>AnonCreds</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Revelació selectiva</td><td class="no">NO</td><td class="ok">SÍ</td></tr>
+            <tr><td>Proves ZKP (predicats)</td><td class="no">NO</td><td class="ok">SÍ</td></tr>
+            <tr><td>Clau pública</td><td class="no">SERVIDOR</td><td class="ok">LEDGER</td></tr>
+            <tr><td>Revocació interoperable</td><td class="no">FEBLE</td><td class="ok">STATUS LIST</td></tr>
+            <tr><td>Correlació entre verificadors</td><td class="no">ALTA</td><td class="ok">BAIXA</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ============================================================
+           BACKUP B · Bitstring Status List vs RevRegs natius
+           ============================================================ -->
+      <section class="reserve">
+        <div class="eyebrow"><span class="num">Q&amp;A</span> · BACKUP B</div>
+        <h3>Bitstring Status List vs RevRegs natius</h3>
+        <table>
+          <thead>
+            <tr><th>Criteri</th><th>RevRegs natius</th><th>Bitstring Status List</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Compatibilitat Credo-TS v0.5</td><td class="no">TRENCADA</td><td class="ok">OK</td></tr>
+            <tr><td>Descàrrega de fitxer pel titular</td><td class="no">TAILS FILE</td><td class="ok">CAP</td></tr>
+            <tr><td>Dependència de connectivitat</td><td class="no">ALTA</td><td class="ok">BAIXA</td></tr>
+            <tr><td>Publicació a blockchain per revocar</td><td class="no">SÍ</td><td class="ok">NO</td></tr>
+            <tr><td>Interoperabilitat W3C</td><td class="no">PARCIAL</td><td class="ok">SÍ</td></tr>
+            <tr><td>Complexitat</td><td class="no">ALTA</td><td class="ok">BAIXA</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ============================================================
+           BACKUP C · Clau Ed25519 al disc i cami cap a HSM/KMS
+           ============================================================ -->
+      <section class="reserve">
+        <div class="eyebrow"><span class="num">Q&amp;A</span> · BACKUP C</div>
+        <h3>La clau Ed25519: del disc a HSM / KMS</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="idx">ARA</div>
+            <div class="body"><b>Clau privada en JSON al disc</b>Qui accedeix al filesystem pot signar status lists falses</div>
+          </div>
+          <div class="step">
+            <div class="idx">01</div>
+            <div class="body"><b>Variable d'entorn / secret manager</b></div>
+          </div>
+          <div class="step">
+            <div class="idx">02</div>
+            <div class="body"><b>HSM o KMS</b>La clau mai surt del mòdul</div>
+          </div>
+        </div>
+        <p class="note">L'arquitectura no canvia: només l'origen de la signatura de la <span class="k">Status List</span>.</p>
+      </section>
+
+
+        <!-- ============================================================
+           BACKUP D · Les tres capes: transport vs xifratge (§2.3.1)
+           ============================================================ -->
+      <section class="reserve">
+        <div class="eyebrow"><span class="num">Q&amp;A</span> · BACKUP D</div>
+        <h3>Peer-to-peer? Transport vs xifratge</h3>
+
+        <div class="layers">
+          <!-- Capa 1: transport de xarxa -->
+          <div class="layer-row">
+            <div class="layer-tag net">XARXA</div>
+            <div class="layer-body">
+              <div class="layer-name">Túnel Cloudflare + HTTP</div>
+              <div class="layer-flow">
+                <span class="lnode">Mòbil</span>
+                <span class="lhop">→</span>
+                <span class="lnode mid">Cloudflare</span>
+                <span class="lhop">→</span>
+                <span class="lnode">Agent</span>
+              </div>
+              <div class="layer-note no">Hi ha un intermediari de transport. NO és peer-to-peer.</div>
+            </div>
+          </div>
+
+          <!-- Capa 2: HTTP -->
+          <div class="layer-row">
+            <div class="layer-tag http">HTTP</div>
+            <div class="layer-body">
+              <div class="layer-name">Petició POST a l'adreça pública de l'agent</div>
+              <div class="layer-note">El túnel només fa arribar els paquets al port local.</div>
+            </div>
+          </div>
+
+          <!-- Capa 3: DIDComm -->
+          <div class="layer-row didcomm-row">
+            <div class="layer-tag e2e">DIDComm</div>
+            <div class="layer-body">
+              <div class="layer-name">Xifratge d'extrem a extrem
+                <svg class="llock" viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0110 0v2M6 10h12v9H6z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="layer-flow">
+                <span class="lnode">Mòbil</span>
+                <span class="lhop e2e-hop">🔒 xifrat 🔒</span>
+                <span class="lnode">Agent</span>
+              </div>
+              <div class="layer-note ok">Cloudflare no pot llegir res. La seguretat és extrem a extrem.</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="note">El terme <em>peer-to-peer</em> descrivia la propietat de seguretat (ningú al mig llegeix), no la topologia de xarxa. El correcte: <span class="k">canal xifrat d'extrem a extrem sobre transport HTTP</span>.</p>
+      </section>
+
+  <!-- ===== Marca fixa (el CSS ja la posiciona; fora de .slides) ===== -->
+  <div class="brand-rail">
+    <span class="bits">
+      <span class="bit on"></span>
+      <span class="bit"></span>
+      <span class="bit on"></span>
+      <span class="bit on"></span>
+      <span class="bit"></span>
+      <span class="bit on"></span>
+    </span>
+    <span>SSI · CONTROL D'ACCESSOS</span>
+  </div>
+    </div>
+  </div>
+
+
+
+  <!-- ===== Reveal.js core ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      transition: 'fade',
+      transitionSpeed: 'default',
+      backgroundTransition: 'fade',
+      slideNumber: 'c/t',
+      progress: true,
+      controls: true,
+      controlsLayout: 'bottom-right',
+      controlsBackArrows: 'faded',
+      center: false,
+      width: 1280,
+      height: 720,
+      margin: 0.04
+    });
+  </script>
+</body>
+</html>
