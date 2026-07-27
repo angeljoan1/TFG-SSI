@@ -79,7 +79,7 @@
 | Validació data OT (ha de ser del dia) | ✅ Completat |
 | Panel web verificador — QR + resultat verd/vermell | ✅ Completat |
 | Formulari web emissor OT | ✅ Completat |
-| Memòria del TFG | 🔄 En curs |
+| Memòria del TFG | ✅ Completat |
 
 ## 7. Casos de Prova Validats
 | Cas | Resultat |
